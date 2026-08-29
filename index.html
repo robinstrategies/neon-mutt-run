@@ -20,19 +20,20 @@
         <div class="hud">
           <div><small>VITALITY</small><div class="bar"><i id="healthBar"></i></div></div>
           <div class="stat"><small>KNOCKOUTS</small><strong id="kills">00</strong></div>
+          <div class="stat"><small>SPARKS</small><strong id="ammo">∞</strong></div>
           <div class="stat"><small>TIME ALIVE</small><strong id="timer">00:00</strong></div>
           <div class="stat score"><small>RUN SCORE</small><strong id="score">00000</strong></div>
         </div>
         <div class="touch-controls" aria-label="Touch controls">
           <div class="touch-dpad"><button data-key="w" aria-label="Move up">▲</button><button data-key="a" aria-label="Move left">◀</button><button data-key="s" aria-label="Move down">▼</button><button data-key="d" aria-label="Move right">▶</button></div>
-          <div><button data-key=" " class="touch-action">BONK</button><button data-key="e" class="touch-action ride">RIDE</button></div>
+          <div><button data-key="f" class="touch-action zap">ZAP</button><button data-key=" " class="touch-action">BONK</button><button data-key="e" class="touch-action ride">RIDE</button></div>
         </div>
         <div id="startScreen" class="overlay">
           <p class="eyebrow">WELCOME TO BUBBLE CITY</p>
           <h1>STAY WEIRD.<br />STAY UPRIGHT.</h1>
-          <p>Bonk the lurking goons. Borrow a silly ride. Last as long as you can.</p>
+          <p>Zap the lurking goons. Borrow a silly ride. Last as long as you can.</p>
           <button id="startButton" class="primary">START A RUN</button>
-          <p class="keys">MOVE: WASD / ARROWS &nbsp;·&nbsp; BONK: SPACE &nbsp;·&nbsp; RIDE: E</p>
+          <p class="keys">MOVE: WASD / ARROWS &nbsp;·&nbsp; ZAP: F OR CLICK &nbsp;·&nbsp; BONK: SPACE &nbsp;·&nbsp; RIDE: E</p>
         </div>
         <div id="gameOver" class="overlay hidden">
           <p class="eyebrow">RUN OVER</p>
@@ -48,7 +49,7 @@
         <article class="howto">
           <p class="eyebrow">HOW TO ROLL</p>
           <h2>Small city. Big nonsense.</h2>
-          <p>Chase a high score by staying alive and sending mean little blobs flying. Hop into any abandoned Bubble Bug, Meat Wagon, or Citrus Cab with <kbd>E</kbd>. Cars hit harder, but they don’t last forever.</p>
+          <p>Chase a high score by zapping mean little creeps and staying alive. Concrete blocks stop cars, feet, and shots—use the roads and alleys. Hop into any abandoned Bubble Bug, Meat Wagon, or Citrus Cab with <kbd>E</kbd>.</p>
         </article>
         <aside class="board">
           <div class="board-title"><span>LIVE SCOREBOARD</span><button id="refreshBoard" aria-label="Refresh scoreboard">↻</button></div>
@@ -57,7 +58,7 @@
         </aside>
       </section>
     </main>
-    <dialog id="helpDialog"><button id="closeHelp" aria-label="Close help">×</button><p class="eyebrow">QUICK GUIDE</p><h2>How not to get squished</h2><p>Keep moving. Enemies nibble vitality when nearby. A bonk knocks them back; cars turn every bump into a bigger bonk. Your points are <b>10 per second alive + 500 per knockout</b>.</p></dialog>
+    <dialog id="helpDialog"><button id="closeHelp" aria-label="Close help">×</button><p class="eyebrow">QUICK GUIDE</p><h2>How not to get squished</h2><p>Keep moving and use <b>F</b> to fire your unlimited spark blaster. A bonk knocks creeps back; cars flatten them on contact. Buildings are solid, so cut through streets and alleys. Your points are <b>10 per second alive + 500 per knockout</b>.</p></dialog>
     <script src="supabase-config.js"></script>
     <script src="game.js"></script>
   </body>

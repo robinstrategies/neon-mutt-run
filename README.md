@@ -2,6 +2,15 @@
 
 An original, free browser arcade survival game. It uses a top-down city playground and vehicle hijinks, but its setting, visual language, characters, vehicle names, and mechanics are independent from any existing game franchise.
 
+## Controls
+
+- **WASD / arrow keys:** move and steer
+- **F or click/tap the game field:** fire the unlimited spark blaster
+- **Space:** close-range bonk
+- **E:** enter or leave a nearby vehicle
+
+Buildings block people, cars, and sparks. Follow the streets and use the short alleys to keep separation from the crowd.
+
 ## Run locally
 
 Open `index.html` in a modern browser, or serve this folder with any static-file host.
