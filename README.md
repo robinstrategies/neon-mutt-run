@@ -1,6 +1,6 @@
 # Neon Mutt Run
 
-An original, free browser arcade survival game. It uses a top-down city playground and vehicle hijinks, but its setting, visual language, characters, vehicle names, and mechanics are independent from any existing game franchise.
+An original, free browser arcade survival game set in **Bubble City**. You play as **Stocky Vermicelli**, a wiry survivor navigating a scrolling, phone-friendly city playground. Its setting, visual language, characters, vehicle names, and mechanics are independent from any existing game franchise.
 
 ## Controls
 
@@ -10,6 +10,10 @@ An original, free browser arcade survival game. It uses a top-down city playgrou
 - **E:** enter or leave a nearby vehicle
 
 Buildings block people, cars, and sparks. Follow the streets and use the short alleys to keep separation from the crowd.
+
+## Difficulty
+
+The city begins at Heat 01. Every 30 seconds, the heat rises: creeps arrive more often, move faster, and do more damage. The world is larger than the screen, but only the nearby 960 × 600 camera view is rendered, keeping play smooth on average phones.
 
 ## Run locally
 
