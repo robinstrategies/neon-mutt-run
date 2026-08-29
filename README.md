@@ -34,4 +34,4 @@ Push this repository to a public GitHub repository. GitHub Pages, Cloudflare Pag
 
 ## License
 
-MIT — add a `LICENSE` file before publishing if you want to make the license explicit.
+MIT. You can freely use, alter, and share the game under the terms in `LICENSE`.
