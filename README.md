@@ -1,19 +1,19 @@
 # Neon Mutt Run
 
-An original, free browser arcade survival game set in **Bubble City**. You play as **Stocky Vermicelli**, a wiry survivor navigating a scrolling, phone-friendly city playground. Its setting, visual language, characters, vehicle names, and mechanics are independent from any existing game franchise.
+An original, free browser arcade survival game set in **Bubble City**. You play as **Stocky Vermicelli**, a wiry survivor navigating a scrolling, phone-friendly city playground full of wandering pedestrians, crooked-badge villains, rival crews, reckless traffic, and occasional loudmouth bosses. Its setting, visual language, characters, vehicle names, and mechanics are independent from any existing game franchise.
 
 ## Controls
 
 - **WASD / arrow keys:** move and steer
-- **F or click/tap the game field:** fire the unlimited spark blaster
+- **F or click/tap the game field:** fire the spark blaster
 - **Space:** close-range bonk
 - **E:** enter or leave a nearby vehicle
 
-Buildings block people, cars, and sparks. Follow the streets and use the short alleys to keep separation from the crowd.
+Keyboard and touch firing includes a light aim assist toward nearby threats. Mouse and field taps aim at the exact world point, including when the camera has scrolled. Buildings block people, cars, and shots. Follow the streets and use the short alleys to keep separation from the crowd.
 
 ## Difficulty
 
-The city begins at Heat 01. Every 30 seconds, the heat rises: creeps arrive more often, move faster, and do more damage. The world is larger than the screen, but only the nearby 960 × 600 camera view is rendered, keeping play smooth on average phones.
+The city begins at Heat 01. Every 30 seconds, the heat rises: enemies arrive more often, move faster, shoot more, and do more damage. Mob bosses appear over time, and rare pickups temporarily swap Stocky's weapon to fireballs or rockets. The world is larger than the screen, but only the nearby 960 × 600 camera view is rendered, keeping play smooth on average phones.
 
 ## Run locally
 
