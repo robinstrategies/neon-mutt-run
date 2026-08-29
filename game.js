@@ -117,6 +117,7 @@
     heat: $('#heat'),
     ammo: $('#ammo'),
     cash: $('#cash'),
+    mult: $('#mult'),
     start: $('#startScreen'),
     over: $('#gameOver'),
     result: $('#resultLine'),
@@ -128,6 +129,8 @@
   const buildings = [];
   const stores = [];
   const props = [];
+  const phones = [];
+  const garages = [];
   const keys = new Set();
   let game;
   let last = 0;
@@ -211,6 +214,7 @@
     });
 
     seedStreetProps(rnd);
+    seedServiceSpots(rnd);
   }
 
   function bandsFromRoads(roads, max, axis) {
@@ -273,6 +277,20 @@
     });
   }
 
+  function seedServiceSpots(rnd) {
+    const shuffled = stores.slice().sort(() => rnd() - 0.5);
+    shuffled.slice(0, 9).forEach((store, i) => {
+      const phone = { type: 'jobphone', x: store.x, y: store.y, pulse: i * 0.7 };
+      phones.push(phone);
+      props.push(phone);
+    });
+    shuffled.slice(10, 16).forEach(store => {
+      const garage = { type: 'garage', x: store.x, y: store.y, w: 42, h: 26 };
+      garages.push(garage);
+      props.push(garage);
+    });
+  }
+
   function reset() {
     const start = findStartPoint();
     game = {
@@ -281,18 +299,25 @@
       t: 0,
       kills: 0,
       cash: 0,
+      mult: 1,
+      noise: 0,
+      armor: 0,
       health: 100,
       spawn: 3.1,
       bossAt: 38,
       bossIndex: 0,
       pedTick: 0,
-      player: { x: start.x, y: start.y, a: -Math.PI / 2, bonk: 0, vehicle: null, fire: 0, weapon: 'spark', weaponT: 0, aimLock: 0 },
+      crateTick: 2,
+      mission: null,
+      notice: null,
+      player: { x: start.x, y: start.y, a: -Math.PI / 2, bonk: 0, vehicle: null, fire: 0, weapon: 'spark', weaponT: 0, turboT: 0, aimLock: 0 },
       enemies: [],
       peds: [],
       cars: [],
       bullets: [],
       enemyBullets: [],
       drops: [],
+      crates: [],
       particles: [],
       camera: { x: clamp(start.x - W / 2, 0, WORLD_W - W), y: clamp(start.y - H / 2, 0, WORLD_H - H) }
     };
@@ -308,6 +333,7 @@
 
     for (let i = 0; i < 20; i++) spawnPed(true);
     for (let i = 0; i < 18; i++) spawnTraffic();
+    for (let i = 0; i < 14; i++) spawnCrate();
     for (let i = 0; i < 2; i++) spawnHostile();
     spawnHostile(false, 'badge');
     updateHud();
@@ -335,7 +361,14 @@
     game.t += dt;
     game.spawn -= dt;
     game.pedTick -= dt;
+    game.crateTick -= dt;
+    if (game.notice) {
+      game.notice.t -= dt;
+      if (game.notice.t <= 0) game.notice = null;
+    }
+    game.noise = Math.max(0, game.noise - dt * 0.48);
     p.fire -= dt;
+    p.turboT = Math.max(0, p.turboT - dt);
     p.aimLock = Math.max(0, p.aimLock - dt);
 
     const heat = heatLevel();
@@ -347,6 +380,10 @@
     if (game.pedTick <= 0 && game.peds.length < 24) {
       spawnPed();
       game.pedTick = 2.5;
+    }
+    if (game.crateTick <= 0 && game.crates.length < 18) {
+      spawnCrate();
+      game.crateTick = 4.5 + Math.random() * 4;
     }
     if (game.t > game.bossAt) {
       spawnBoss();
@@ -362,7 +399,8 @@
       if (p.aimLock <= 0.02) p.a = Math.atan2(dy, dx);
     }
 
-    move(p, dx * (p.vehicle ? 275 : 150) * dt, dy * (p.vehicle ? 275 : 150) * dt, p.vehicle ? 21 : 11);
+    const turbo = p.turboT > 0 ? 1.34 : 1;
+    move(p, dx * (p.vehicle ? 275 : 150) * turbo * dt, dy * (p.vehicle ? 275 : 150) * turbo * dt, p.vehicle ? 21 : 11);
 
     if (keys.has('e') && !p.eLatch) {
       p.eLatch = true;
@@ -394,8 +432,10 @@
     updatePeds(dt);
     updateEnemies(dt);
     updateBullets(dt);
+    updateCrates(dt);
     updateDrops(dt);
     updateParticles(dt);
+    updateMission(dt);
 
     game.camera.x = clamp(p.x - W / 2, 0, WORLD_W - W);
     game.camera.y = clamp(p.y - H / 2, 0, WORLD_H - H);
@@ -492,11 +532,25 @@
 
   function spawnDrop(x, y, force = false) {
     if (!force && Math.random() > 0.075) return;
-    game.drops.push({
-      x, y,
-      type: Math.random() > 0.65 ? 'rocket' : 'flame',
-      life: 13
-    });
+    dropItem(x, y, Math.random() > 0.65 ? 'rocket' : 'flame');
+  }
+
+  function dropItem(x, y, type) {
+    game.drops.push({ x, y, type, life: type === 'quiet' || type === 'heal' ? 10 : 13 });
+  }
+
+  function spawnCrate() {
+    for (let i = 0; i < 24; i++) {
+      const pt = randomOpenPoint();
+      if (!pt || onRoad(pt.x, pt.y, -4)) continue;
+      game.crates.push({
+        x: pt.x,
+        y: pt.y,
+        life: 1,
+        spin: Math.random() * Math.PI
+      });
+      return;
+    }
   }
 
   function updateTraffic(dt) {
@@ -548,6 +602,8 @@
     });
 
     game.cars = game.cars.filter(c => c.life > 0 || c.occupied);
+    const traffic = game.cars.filter(c => c.kind === 'traffic').length;
+    if (traffic < 18 && Math.random() < dt * 0.65) spawnTraffic();
   }
 
   function maybeTurnTraffic(c) {
@@ -677,6 +733,14 @@
           else if (b.kind !== 'flame') b.life = 0;
         }
       });
+
+      game.crates.forEach(crate => {
+        if (b.life > 0 && crate.life > 0 && Math.hypot(b.x - crate.x, b.y - crate.y) < 17 + (b.radius || 4)) {
+          breakCrate(crate);
+          if (b.kind === 'rocket') explodeBullet(b);
+          else if (b.kind !== 'flame') b.life = 0;
+        }
+      });
     });
 
     game.enemyBullets.forEach(b => {
@@ -696,15 +760,54 @@
     game.enemyBullets = game.enemyBullets.filter(b => b.life > 0 && b.x > -30 && b.x < WORLD_W + 30 && b.y > -30 && b.y < WORLD_H + 30);
   }
 
+  function updateCrates() {
+    const p = game.player;
+    if (p.vehicle) {
+      game.crates.forEach(crate => {
+        if (crate.life > 0 && Math.hypot(crate.x - p.x, crate.y - p.y) < 36) breakCrate(crate);
+      });
+    }
+    game.crates = game.crates.filter(crate => crate.life > 0);
+  }
+
+  function breakCrate(crate) {
+    if (crate.life <= 0) return;
+    crate.life = 0;
+    const roll = Math.random();
+    const type = roll > 0.96 ? 'frenzy' : roll > 0.9 ? 'rocket' : roll > 0.72 ? 'flame' : roll > 0.55 ? 'armor' : roll > 0.38 ? 'turbo' : roll > 0.19 ? 'multi' : roll > 0.08 ? 'quiet' : 'heal';
+    dropItem(crate.x, crate.y, type);
+    burst(crate.x, crate.y, '#f8e378', 10);
+  }
+
   function updateDrops(dt) {
     const p = game.player;
     game.drops.forEach(d => {
       d.life -= dt;
       if (Math.hypot(d.x - p.x, d.y - p.y) < 25) {
-        p.weapon = d.type;
-        p.weaponT = d.type === 'rocket' ? 10 : 20;
+        if (d.type === 'rocket' || d.type === 'flame') {
+          p.weapon = d.type;
+          p.weaponT = d.type === 'rocket' ? 10 : 20;
+          flash(d.type === 'rocket' ? 'ROCKETS FOR 10 SECONDS' : 'FIREBALLS FOR 20 SECONDS');
+        } else if (d.type === 'armor') {
+          game.armor = Math.min(100, game.armor + 35);
+          flash('BUBBLE ARMOR UP');
+        } else if (d.type === 'turbo') {
+          p.turboT = 10;
+          flash('TURBO FEET ONLINE');
+        } else if (d.type === 'multi') {
+          game.mult = Math.min(9, game.mult + 1);
+          flash(`MULTIPLIER X${game.mult}`);
+        } else if (d.type === 'quiet') {
+          game.noise = Math.max(0, game.noise - 45);
+          flash('QUIET COIN COOLS THE HEAT');
+        } else if (d.type === 'heal') {
+          game.health = Math.min(100, game.health + 28);
+          flash('SNACK PATCHED YOU UP');
+        } else if (d.type === 'frenzy') {
+          startFrenzy();
+        }
         d.life = 0;
-        spark(d.x, d.y, d.type === 'rocket' ? '#ffad42' : '#ff557f', 14);
+        spark(d.x, d.y, dropColor(d.type), 14);
       }
     });
     game.drops = game.drops.filter(d => d.life > 0);
@@ -730,6 +833,7 @@
     const p = game.player;
     const weapon = p.weapon;
     const nose = p.vehicle ? 27 : 13;
+    addNoise(weapon === 'rocket' ? 2.8 : weapon === 'flame' ? 1.4 : 0.28);
     if (weapon === 'rocket') {
       game.bullets.push({
         kind: 'rocket',
@@ -830,13 +934,16 @@
         e.stun = 0.35;
       }
     });
+    game.crates.forEach(crate => {
+      if (crate.life > 0 && Math.hypot(crate.x - p.x, crate.y - p.y) < range) breakCrate(crate);
+    });
   }
 
   function hitEnemy(e, damage, bullet) {
     e.hp -= damage;
     e.hitFlash = 0.08;
     spark(e.x, e.y, e.color, bullet?.kind === 'rocket' ? 10 : 5);
-    if (e.hp <= 0) {
+    if (e.hp <= 0 && !e.counted) {
       awardEnemy(e);
       spawnDrop(e.x, e.y, e.type?.startsWith('boss'));
     }
@@ -867,7 +974,9 @@
     e.counted = true;
     game.kills++;
     const bounty = e.type === 'bossGun' ? 1600 : e.type === 'bossBruiser' ? 1800 : e.type === 'badge' ? 450 : e.type === 'gangShooter' ? 380 : 250;
-    game.cash += bounty;
+    game.cash += Math.floor(bounty * game.mult);
+    addNoise(e.type?.startsWith('boss') ? 18 : 6);
+    noteMissionKill(e);
   }
 
   function wreckCar(c, playerWasInside) {
@@ -880,10 +989,13 @@
     }
     if (c.kind === 'boss') {
       game.kills++;
-      game.cash += 2200;
+      game.cash += Math.floor(2200 * game.mult);
+      addNoise(22);
       spawnDrop(c.x, c.y, true);
     } else if (c.kind === 'traffic') {
-      game.cash += 75;
+      game.cash += Math.floor(75 * game.mult);
+      addNoise(9);
+      noteMissionCar(c);
       spawnDrop(c.x, c.y);
     }
     burst(c.x, c.y, '#ffad42', 30);
@@ -893,6 +1005,11 @@
   function damagePlayer(amount, x, y) {
     const p = game.player;
     if (game.t < 9) amount *= 0.3;
+    if (game.armor > 0) {
+      const blockedDamage = Math.min(game.armor, amount * 4);
+      game.armor -= blockedDamage;
+      amount -= blockedDamage * 0.22;
+    }
     if (p.vehicle) {
       p.vehicle.life -= amount * 4.2;
       game.health -= amount * 0.12;
@@ -906,10 +1023,12 @@
   function toggleRide() {
     const p = game.player;
     if (p.vehicle) {
+      if (useGarage()) return;
       p.vehicle.occupied = false;
       p.vehicle = null;
       return;
     }
+    if (startMissionFromPhone()) return;
     const car = game.cars.find(c => c.kind === 'parked' && !c.occupied && c.life > 0 && Math.hypot(c.x - p.x, c.y - p.y) < 52);
     if (car) {
       p.vehicle = car;
@@ -918,6 +1037,129 @@
       p.y = car.y;
       p.a = car.a;
     }
+  }
+
+  function startMissionFromPhone() {
+    if (game.mission) {
+      flash('FINISH THE CURRENT HUSTLE FIRST');
+      return true;
+    }
+    const p = game.player;
+    const phone = phones.find(item => Math.hypot(item.x - p.x, item.y - p.y) < 46);
+    if (!phone) return false;
+    const heat = heatLevel();
+    const options = ['sweep', 'wreck', 'courier'];
+    const type = options[Math.floor(Math.random() * options.length)];
+    if (type === 'sweep') {
+      const remaining = 3 + Math.min(4, Math.floor(heat / 2));
+      game.mission = {
+        type,
+        remaining,
+        total: remaining,
+        timer: 36 + heat * 2,
+        reward: 500 + heat * 160,
+        text: `Drop ${remaining} street creeps`
+      };
+    } else if (type === 'wreck') {
+      const remaining = 2 + Math.min(3, Math.floor(heat / 3));
+      game.mission = {
+        type,
+        remaining,
+        total: remaining,
+        timer: 42,
+        reward: 650 + heat * 180,
+        text: `Scrap ${remaining} reckless rides`
+      };
+    } else {
+      const target = farGarageOrStore(p.x, p.y);
+      game.mission = {
+        type,
+        target,
+        timer: 48,
+        reward: 850 + heat * 120,
+        text: 'Deliver any borrowed ride'
+      };
+    }
+    flash(`SIDE HUSTLE: ${game.mission.text.toUpperCase()}`);
+    return true;
+  }
+
+  function useGarage() {
+    const p = game.player;
+    const garage = garages.find(item => Math.hypot(item.x - p.x, item.y - p.y) < 58);
+    if (!garage) return false;
+    p.vehicle.life = Math.min(p.vehicle.maxLife, p.vehicle.life + 55);
+    game.noise = Math.max(0, game.noise - 55);
+    game.cash = Math.max(0, game.cash - 120);
+    flash('BUBBLE WASH: RIDE FIXED, HEAT COOLED');
+    spark(p.x, p.y, '#35d8d5', 18);
+    return true;
+  }
+
+  function farGarageOrStore(x, y) {
+    const pool = garages.length ? garages : stores;
+    return pool.slice().sort((a, b) => Math.hypot(b.x - x, b.y - y) - Math.hypot(a.x - x, a.y - y))[0];
+  }
+
+  function updateMission(dt) {
+    if (!game.mission) return;
+    const m = game.mission;
+    m.timer -= dt;
+    if (m.type === 'courier' && m.target && game.player.vehicle && Math.hypot(game.player.x - m.target.x, game.player.y - m.target.y) < 58) {
+      completeMission();
+      return;
+    }
+    if (m.timer <= 0) failMission();
+  }
+
+  function startFrenzy() {
+    const heat = heatLevel();
+    const remaining = 5 + Math.min(5, heat);
+    game.player.weapon = 'flame';
+    game.player.weaponT = 20;
+    game.mission = {
+      type: 'sweep',
+      remaining,
+      total: remaining,
+      timer: 24,
+      reward: 1200 + heat * 260,
+      text: `Bubble frenzy: drop ${remaining}`
+    };
+    flash('BUBBLE FRENZY - FIREBALLS ONLINE');
+  }
+
+  function noteMissionKill(e) {
+    const m = game.mission;
+    if (!m || m.type !== 'sweep') return;
+    if (e.type === 'bossCar') return;
+    m.remaining--;
+    if (m.remaining <= 0) completeMission();
+  }
+
+  function noteMissionCar(c) {
+    const m = game.mission;
+    if (!m || m.type !== 'wreck' || c.kind !== 'traffic') return;
+    m.remaining--;
+    if (m.remaining <= 0) completeMission();
+  }
+
+  function completeMission() {
+    const m = game.mission;
+    if (!m) return;
+    const paid = Math.floor(m.reward * game.mult);
+    game.cash += paid;
+    game.mult = Math.min(9, game.mult + 1);
+    game.noise = Math.max(0, game.noise - 25);
+    flash(`HUSTLE PAID $${paid} - MULTIPLIER X${game.mult}`);
+    spark(game.player.x, game.player.y, '#d9ff5c', 28);
+    game.mission = null;
+  }
+
+  function failMission() {
+    if (!game.mission) return;
+    game.mult = Math.max(1, game.mult - 1);
+    flash('HUSTLE FIZZLED');
+    game.mission = null;
   }
 
   function spawnPointAroundPlayer(min, max) {
@@ -976,11 +1218,11 @@
   }
 
   function heatLevel() {
-    return 1 + Math.floor(game.t / 30);
+    return Math.min(8, 1 + Math.floor(game.t / 30) + Math.floor(game.noise / 70));
   }
 
   function score() {
-    return Math.floor(game.t * 12) + game.kills * 500 + game.cash;
+    return Math.floor(game.t * 12) + game.kills * 250 + game.cash;
   }
 
   function end() {
@@ -999,6 +1241,7 @@
     ui.heat.textContent = String(heatLevel()).padStart(2, '0');
     ui.ammo.textContent = game.player.weapon === 'rocket' ? 'RKT' : game.player.weapon === 'flame' ? 'FIRE' : '∞';
     if (ui.cash) ui.cash.textContent = `$${String(game.cash).padStart(4, '0')}`;
+    if (ui.mult) ui.mult.textContent = `X${game.mult}`;
   }
 
   function draw() {
@@ -1010,6 +1253,7 @@
     drawRoads();
     props.forEach(drawProp);
     buildings.forEach(drawBuilding);
+    game.crates.forEach(drawCrate);
     game.drops.forEach(drawDrop);
     game.cars.forEach(car);
     game.peds.forEach(ped => person(ped.x, ped.y, ped.a, ped.color, ped.hair, 0.82, 'ped'));
@@ -1033,6 +1277,7 @@
     game.enemies.forEach(drawSpeechFor);
     game.cars.filter(c => c.kind === 'boss').forEach(drawSpeechFor);
     ctx.restore();
+    drawCanvasHud();
   }
 
   function drawGround() {
@@ -1117,6 +1362,26 @@
       ctx.fillRect(-7, -11, 14, 22);
       ctx.fillStyle = '#f7fbff';
       ctx.fillRect(-4, -7, 8, 9);
+    } else if (p.type === 'jobphone') {
+      ctx.fillStyle = '#102535';
+      ctx.fillRect(-8, -13, 16, 26);
+      ctx.fillStyle = Math.sin(game.t * 5 + p.pulse) > 0 ? '#d9ff5c' : '#35d8d5';
+      ctx.fillRect(-5, -9, 10, 8);
+      ctx.fillStyle = '#f4ebd3';
+      ctx.font = 'bold 6px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('JOB', 0, 10);
+      ctx.textAlign = 'start';
+    } else if (p.type === 'garage') {
+      ctx.fillStyle = '#102535';
+      ctx.fillRect(-22, -14, 44, 28);
+      ctx.fillStyle = '#35d8d5';
+      ctx.fillRect(-18, -10, 36, 20);
+      ctx.fillStyle = '#102535';
+      ctx.font = 'bold 7px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('WASH', 0, 3);
+      ctx.textAlign = 'start';
     } else if (p.type === 'bench') {
       ctx.fillStyle = '#8e5b35';
       ctx.fillRect(-15, -4, 30, 6);
@@ -1143,6 +1408,115 @@
       ctx.fillRect(-6, -7, 12, 14);
     }
     ctx.restore();
+  }
+
+  function drawCrate(crate) {
+    ctx.save();
+    ctx.translate(crate.x, crate.y);
+    ctx.rotate(crate.spin + Math.sin(game.t * 2 + crate.x) * 0.04);
+    ctx.fillStyle = '#8e5b35';
+    ctx.fillRect(-14, -14, 28, 28);
+    ctx.fillStyle = '#f8e378';
+    ctx.fillRect(-12, -3, 24, 6);
+    ctx.fillRect(-3, -12, 6, 24);
+    ctx.strokeStyle = '#102535';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-14, -14, 28, 28);
+    ctx.restore();
+  }
+
+  function drawCanvasHud() {
+    drawMissionHud();
+    drawMinimap();
+    drawContextPrompt();
+    if (game.notice) {
+      ctx.save();
+      ctx.font = 'bold 15px monospace';
+      ctx.textAlign = 'center';
+      const w = Math.min(470, Math.max(170, ctx.measureText(game.notice.text).width + 28));
+      ctx.fillStyle = 'rgba(16,37,53,.84)';
+      ctx.fillRect(W / 2 - w / 2, 86, w, 30);
+      ctx.fillStyle = '#d9ff5c';
+      ctx.fillText(game.notice.text, W / 2, 106);
+      ctx.restore();
+    }
+  }
+
+  function drawContextPrompt() {
+    const p = game.player;
+    let text = '';
+    if (!game.mission && phones.some(item => Math.hypot(item.x - p.x, item.y - p.y) < 48)) text = 'E: ANSWER SIDE HUSTLE';
+    else if (p.vehicle && garages.some(item => Math.hypot(item.x - p.x, item.y - p.y) < 60)) text = 'E: BUBBLE WASH';
+    if (!text) return;
+    ctx.save();
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    const w = ctx.measureText(text).width + 22;
+    ctx.fillStyle = 'rgba(16,37,53,.88)';
+    ctx.fillRect(W / 2 - w / 2, H - 88, w, 24);
+    ctx.fillStyle = '#f8e378';
+    ctx.fillText(text, W / 2, H - 72);
+    ctx.restore();
+  }
+
+  function drawMissionHud() {
+    if (!game.mission) return;
+    const m = game.mission;
+    const text = m.type === 'courier'
+      ? `${m.text}  ${Math.ceil(m.timer)}s`
+      : `${m.text}: ${m.remaining}/${m.total} left  ${Math.ceil(m.timer)}s`;
+    ctx.save();
+    ctx.font = 'bold 13px monospace';
+    ctx.textAlign = 'center';
+    const w = Math.min(520, Math.max(230, ctx.measureText(text).width + 28));
+    ctx.fillStyle = 'rgba(16,37,53,.88)';
+    ctx.fillRect(W / 2 - w / 2, 50, w, 28);
+    ctx.fillStyle = '#f8e378';
+    ctx.fillText(text, W / 2, 69);
+    ctx.restore();
+
+    if (m.type === 'courier' && m.target) {
+      const sx = m.target.x - game.camera.x;
+      const sy = m.target.y - game.camera.y;
+      if (sx > -40 && sx < W + 40 && sy > -40 && sy < H + 40) {
+        ctx.save();
+        ctx.strokeStyle = '#d9ff5c';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 26 + Math.sin(game.t * 5) * 4, 0, 7);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+  }
+
+  function drawMinimap() {
+    const x = 18;
+    const y = 86;
+    const w = 132;
+    const h = 90;
+    const sx = w / WORLD_W;
+    const sy = h / WORLD_H;
+    ctx.save();
+    ctx.fillStyle = 'rgba(16,37,53,.78)';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = '#f4ebd3';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, y, w, h);
+    ctx.fillStyle = 'rgba(244,235,211,.18)';
+    H_ROADS.forEach(r => ctx.fillRect(x, y + r.y * sy - 1, w, 2));
+    V_ROADS.forEach(r => ctx.fillRect(x + r.x * sx - 1, y, 2, h));
+    plotDots(phones, x, y, sx, sy, '#d9ff5c', 2);
+    plotDots(garages, x, y, sx, sy, '#35d8d5', 2);
+    plotDots(game.enemies.slice(0, 24), x, y, sx, sy, '#ff557f', 2);
+    if (game.mission?.target) plotDots([game.mission.target], x, y, sx, sy, '#f8e378', 4);
+    plotDots([game.player], x, y, sx, sy, '#ffffff', 3);
+    ctx.restore();
+  }
+
+  function plotDots(items, x, y, sx, sy, color, size) {
+    ctx.fillStyle = color;
+    items.forEach(item => ctx.fillRect(x + item.x * sx - size / 2, y + item.y * sy - size / 2, size, size));
   }
 
   function drawBuilding(b) {
@@ -1172,15 +1546,16 @@
   }
 
   function drawDrop(d) {
+    const labels = { rocket: 'R', flame: 'F', armor: 'A', turbo: 'T', multi: 'X', quiet: 'Q', heal: '+', frenzy: '!' };
     ctx.save();
     ctx.translate(d.x, d.y);
     ctx.rotate(game.t * 2.6);
-    ctx.fillStyle = d.type === 'rocket' ? '#ffad42' : '#ff557f';
+    ctx.fillStyle = dropColor(d.type);
     ctx.fillRect(-10, -10, 20, 20);
     ctx.fillStyle = '#102535';
     ctx.font = 'bold 9px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(d.type === 'rocket' ? 'R' : 'F', 0, 4);
+    ctx.fillText(labels[d.type] || '?', 0, 4);
     ctx.restore();
     ctx.textAlign = 'start';
   }
@@ -1396,6 +1771,27 @@
 
   function randomInsult() {
     return cryptoInsults[Math.floor(Math.random() * cryptoInsults.length)];
+  }
+
+  function flash(text, ttl = 2.3) {
+    game.notice = { text, t: ttl };
+  }
+
+  function addNoise(amount) {
+    game.noise = clamp(game.noise + amount, 0, 220);
+  }
+
+  function dropColor(type) {
+    return {
+      rocket: '#ffad42',
+      flame: '#ff557f',
+      armor: '#35d8d5',
+      turbo: '#d9ff5c',
+      multi: '#f8e378',
+      quiet: '#92a5ff',
+      heal: '#8be18e',
+      frenzy: '#ffffff'
+    }[type] || '#fff58b';
   }
 
   function spark(x, y, c, n) {

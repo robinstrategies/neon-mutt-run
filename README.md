@@ -1,6 +1,6 @@
 # Neon Mutt Run
 
-An original, free browser arcade survival game set in **Bubble City**. You play as **Stocky Vermicelli**, a wiry survivor navigating a scrolling, phone-friendly city playground full of wandering pedestrians, crooked-badge villains, rival crews, reckless traffic, and occasional loudmouth bosses. Its setting, visual language, characters, vehicle names, and mechanics are independent from any existing game franchise.
+An original, free browser arcade survival game set in **Bubble City**. You play as **Stocky Vermicelli**, a wiry survivor navigating a scrolling, phone-friendly city playground full of wandering pedestrians, crooked-badge villains, rival crews, reckless traffic, ringing side hustles, lucky crates, and occasional loudmouth bosses. Its setting, visual language, characters, vehicle names, and mechanics are independent from any existing game franchise.
 
 ## Controls
 
@@ -8,12 +8,14 @@ An original, free browser arcade survival game set in **Bubble City**. You play 
 - **F or click/tap the game field:** fire the spark blaster
 - **Space:** close-range bonk
 - **E:** enter or leave a nearby vehicle
+- **E near ringing phones:** start a side hustle
+- **E in a car near a garage:** repair the ride and cool the heat
 
 Keyboard and touch firing includes a light aim assist toward nearby threats. Mouse and field taps aim at the exact world point, including when the camera has scrolled. Buildings block people, cars, and shots. Follow the streets and use the short alleys to keep separation from the crowd.
 
 ## Difficulty
 
-The city begins at Heat 01. Every 30 seconds, the heat rises: enemies arrive more often, move faster, shoot more, and do more damage. Mob bosses appear over time, and rare pickups temporarily swap Stocky's weapon to fireballs or rockets. The world is larger than the screen, but only the nearby 960 × 600 camera view is rendered, keeping play smooth on average phones.
+The city begins at Heat 01. Every 30 seconds, the heat rises, and loud play adds extra pressure. Enemies arrive more often, move faster, shoot more, and do more damage. Mob bosses appear over time, lucky crates hide temporary weapons and boosts, rare Bubble Frenzy pickups start short timed chaos runs, and phone hustles increase the score multiplier. The world is larger than the screen, but only the nearby 960 × 600 camera view is rendered, keeping play smooth on average phones.
 
 ## Run locally
 
