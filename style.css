@@ -1,0 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;600;700&display=swap');
+
+:root { --ink:#102535; --paper:#f4ebd3; --lime:#d9ff5c; --pink:#ff557f; --cyan:#35d8d5; --orange:#ffad42; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--paper); color:var(--ink); font-family:"Space Grotesk",sans-serif; }
+button,input { font:inherit; } button { cursor:pointer; }
+.shell { max-width:1100px; margin:auto; padding:28px 26px 54px; }
+header { display:flex; align-items:center; margin-bottom:18px; gap:24px; }
+.brand { color:var(--ink); text-decoration:none; font:900 25px/ .76 "Archivo Black",sans-serif; letter-spacing:-1.6px; }
+.brand span { color:var(--pink); font-size:37px; letter-spacing:-2.5px; }
+.tag { font:500 11px "DM Mono",monospace; letter-spacing:1px; margin-left:auto; }
+.help { width:33px; height:33px; border:2px solid var(--ink); border-radius:50%; background:transparent; font-weight:bold; }
+.game-frame { position:relative; border:4px solid var(--ink); box-shadow:10px 10px 0 var(--ink); background:#62c5b7; overflow:hidden; }
+canvas { display:block; width:100%; height:auto; image-rendering:pixelated; }
+.hud { position:absolute; top:0; left:0; right:0; padding:14px 18px; display:flex; align-items:start; gap:20px; pointer-events:none; color:white; text-shadow:1px 2px #173543; }
+small,.eyebrow { font:500 10px "DM Mono",monospace; letter-spacing:1.2px; }
+.bar { margin-top:5px; width:120px; height:10px; border:2px solid white; background:#173543; }.bar i { display:block; height:100%; width:100%; background:var(--lime); transition:width .2s; }
+.stat { text-align:center; min-width:72px; }.stat strong { display:block; font:21px "Archivo Black",sans-serif; }.score { margin-left:auto; text-align:right; }
+.overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:30px; background:rgba(16,37,53,.79); color:var(--paper); }.overlay.hidden { display:none; }
+.overlay h1 { margin:8px 0; font:clamp(38px,7vw,74px)/.86 "Archivo Black",sans-serif; letter-spacing:-4px; }.overlay p:not(.eyebrow):not(.keys) { max-width:450px; margin:12px 0 23px; }.overlay .keys { margin:19px 0 0; color:var(--lime); font:10px "DM Mono",monospace; }
+.primary { border:2px solid var(--ink); box-shadow:4px 4px 0 var(--pink); padding:12px 20px; background:var(--lime); color:var(--ink); font-weight:700; }.primary:hover { transform:translate(2px,2px); box-shadow:2px 2px 0 var(--pink); }
+label { font:10px "DM Mono",monospace; letter-spacing:1px; margin-top:5px; }.entry { display:flex; margin:8px 0 15px; }.entry input { width:178px; padding:11px; border:2px solid var(--ink); outline:none; text-transform:uppercase; }.entry .primary { box-shadow:none; }.text-button { background:none; border:0; color:var(--lime); text-decoration:underline; font-weight:700; }
+.bottom-row { display:grid; grid-template-columns:1.2fr .8fr; gap:38px; margin-top:55px; }.howto h2 { font:30px/1 "Archivo Black",sans-serif; letter-spacing:-1.5px; margin:8px 0; }.howto>p:last-child { max-width:590px; line-height:1.55; } kbd { border:1px solid var(--ink); box-shadow:2px 2px var(--pink); padding:1px 4px; font:10px "DM Mono",monospace; }
+.board { padding:18px 20px; background:var(--ink); color:var(--paper); transform:rotate(1deg); }.board-title { display:flex; justify-content:space-between; border-bottom:1px solid #58707c; padding-bottom:9px; font:13px "Archivo Black",sans-serif; }.board-title button { background:none; border:0; color:var(--lime); font-size:20px; }.board ol { padding:0; margin:8px 0; list-style:none; }.board li { display:grid; grid-template-columns:34px 1fr auto; padding:7px 0; border-bottom:1px solid #294656; font:12px "DM Mono",monospace; }.rank { color:var(--pink); }.board em { color:var(--lime); font-style:normal; }.board-note { color:#9eb5bd; font:10px/1.4 "DM Mono",monospace; margin:9px 0 0; }
+dialog { border:3px solid var(--ink); box-shadow:8px 8px 0 var(--pink); max-width:390px; background:var(--paper); padding:28px; color:var(--ink); } dialog::backdrop { background:rgba(16,37,53,.68); } dialog h2 { font:29px/1 "Archivo Black",sans-serif; letter-spacing:-1px; } dialog p:last-child { line-height:1.5; } dialog button { float:right; border:0; background:none; font-size:25px; }
+@media (max-width:650px) { .shell { padding:20px 14px 40px; } .tag { display:none; }.game-frame { box-shadow:5px 5px 0 var(--ink); } .hud { padding:8px; gap:8px; }.bar { width:72px; }.stat { min-width:49px; }.stat strong { font-size:14px; }.hud small { font-size:7px; }.bottom-row { grid-template-columns:1fr; gap:27px; margin-top:37px; }.overlay h1 { letter-spacing:-2.5px; }.overlay .keys { line-height:1.8; }.board { transform:none; } }

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Neon Mutt Run — a free, original arcade survival game." />
+    <title>Neon Mutt Run</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <a class="brand" href="/">NEON<br /><span>MUTT RUN</span></a>
+        <div class="tag">FREE ARCADE SURVIVAL</div>
+        <button class="help" id="helpButton" aria-label="Show controls">?</button>
+      </header>
+
+      <section class="game-frame" aria-label="Neon Mutt Run game">
+        <canvas id="game" width="960" height="600" aria-label="Playable game area"></canvas>
+        <div class="hud">
+          <div><small>VITALITY</small><div class="bar"><i id="healthBar"></i></div></div>
+          <div class="stat"><small>KNOCKOUTS</small><strong id="kills">00</strong></div>
+          <div class="stat"><small>TIME ALIVE</small><strong id="timer">00:00</strong></div>
+          <div class="stat score"><small>RUN SCORE</small><strong id="score">00000</strong></div>
+        </div>
+        <div id="startScreen" class="overlay">
+          <p class="eyebrow">WELCOME TO BUBBLE CITY</p>
+          <h1>STAY WEIRD.<br />STAY UPRIGHT.</h1>
+          <p>Bonk the lurking goons. Borrow a silly ride. Last as long as you can.</p>
+          <button id="startButton" class="primary">START A RUN</button>
+          <p class="keys">MOVE: WASD / ARROWS &nbsp;·&nbsp; BONK: SPACE &nbsp;·&nbsp; RIDE: E</p>
+        </div>
+        <div id="gameOver" class="overlay hidden">
+          <p class="eyebrow">RUN OVER</p>
+          <h1>THAT GOT<br />CHAOTIC.</h1>
+          <p id="resultLine"></p>
+          <label for="playerName">PUT YOUR NAME ON THE BOARD</label>
+          <div class="entry"><input id="playerName" maxlength="14" placeholder="RASCAL" /><button id="submitScore" class="primary">POST</button></div>
+          <button id="againButton" class="text-button">RUN IT BACK ↗</button>
+        </div>
+      </section>
+
+      <section class="bottom-row">
+        <article class="howto">
+          <p class="eyebrow">HOW TO ROLL</p>
+          <h2>Small city. Big nonsense.</h2>
+          <p>Chase a high score by staying alive and sending mean little blobs flying. Hop into any abandoned Bubble Bug, Meat Wagon, or Citrus Cab with <kbd>E</kbd>. Cars hit harder, but they don’t last forever.</p>
+        </article>
+        <aside class="board">
+          <div class="board-title"><span>LIVE SCOREBOARD</span><button id="refreshBoard" aria-label="Refresh scoreboard">↻</button></div>
+          <ol id="leaderboard"><li><span class="rank">01</span><b>LOADING...</b><em>—</em></li></ol>
+          <p class="board-note" id="boardNote">Local demo scores are shown until Supabase is connected.</p>
+        </aside>
+      </section>
+    </main>
+    <dialog id="helpDialog"><button id="closeHelp" aria-label="Close help">×</button><p class="eyebrow">QUICK GUIDE</p><h2>How not to get squished</h2><p>Keep moving. Enemies nibble vitality when nearby. A bonk knocks them back; cars turn every bump into a bigger bonk. Your points are <b>10 per second alive + 500 per knockout</b>.</p></dialog>
+    <script src="supabase-config.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>
