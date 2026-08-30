@@ -165,9 +165,10 @@ Daily owner flow:
 1. Claim fees on long.xyz so TTWO lands in the owner wallet.
 2. Open `/claims-admin.html` and connect Rabby.
 3. Deploy the claim vault once, or paste the existing vault address.
-4. Press **Snapshot**.
-5. Press **Create / Fund / Open Round**.
-6. Share the generated `/claim.html?contract=...&round=...` link.
+4. Enter a **TTWO to fund** amount, or leave it blank to use the full connected wallet TTWO balance.
+5. Press **Snapshot**.
+6. Press **Create / Fund / Open Round**.
+7. Share the generated `/claim.html?contract=...&round=...` link.
 
 The holder flow is just connect Rabby, check claim, then claim TTWO. The vault prevents double-claims. The page excludes wallets under `100000` GSA by default.
 

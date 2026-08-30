@@ -74,6 +74,9 @@
     $("#realSendConfirm").addEventListener("change", updatePublishAvailability);
     $("#vaultAddress").addEventListener("input", updateClaimLink);
     $("#roundId").addEventListener("input", updateClaimLink);
+    $("#ttwoBudget").addEventListener("change", () => {
+      if (state.snapshot) setStatus("work", "TTWO amount changed. Press Snapshot again to rebuild allocations.");
+    });
     $("#stopButton").addEventListener("click", () => {
       state.stopRequested = true;
       setStatus("work", "Stopping after the current wallet prompt finishes.");
@@ -401,8 +404,9 @@
 
     try {
       await ensureRobinhoodChain();
-      const ttwoBalanceRaw = await tokenBalance(CONFIG.ttwoContract, state.account);
-      setAdminStats({ ttwo: `${formatUnits(ttwoBalanceRaw, CONFIG.ttwoDecimals, 6)} TTWO` });
+      const walletTtwoBalanceRaw = await tokenBalance(CONFIG.ttwoContract, state.account);
+      const ttwoBudgetRaw = parseTtwoBudget(walletTtwoBalanceRaw);
+      setAdminStats({ ttwo: `${formatUnits(walletTtwoBalanceRaw, CONFIG.ttwoDecimals, 6)} wallet · ${formatUnits(ttwoBudgetRaw, CONFIG.ttwoDecimals, 6)} round` });
 
       const currentBlock = hexToBigInt(await chainCall("eth_blockNumber", []));
       setAdminStats({ block: currentBlock.toString() });
@@ -424,13 +428,14 @@
 
       holders.sort((a, b) => compareBigIntDesc(a.balanceRaw, b.balanceRaw));
       const totalGsaRaw = holders.reduce((sum, holder) => sum + holder.balanceRaw, 0n);
-      const rows = allocateTtwo(holders, totalGsaRaw, ttwoBalanceRaw);
+      const rows = allocateTtwo(holders, totalGsaRaw, ttwoBudgetRaw);
 
       state.snapshot = {
         account: state.account,
         block: currentBlock,
         minRaw,
-        ttwoBalanceRaw,
+        walletTtwoBalanceRaw,
+        ttwoBalanceRaw: ttwoBudgetRaw,
         totalGsaRaw,
         rows,
         createdAt: new Date().toISOString(),
@@ -440,7 +445,7 @@
       setAdminStats({
         holders: rows.length.toLocaleString(),
         block: currentBlock.toString(),
-        ttwo: `${formatUnits(ttwoBalanceRaw, CONFIG.ttwoDecimals, 6)} TTWO`,
+        ttwo: `${formatUnits(walletTtwoBalanceRaw, CONFIG.ttwoDecimals, 6)} wallet · ${formatUnits(ttwoBudgetRaw, CONFIG.ttwoDecimals, 6)} round`,
       });
       updatePublishAvailability();
       setStatus(
@@ -1045,6 +1050,15 @@
     const [whole, fraction = ""] = input.split(".");
     const padded = fraction.padEnd(decimals, "0").slice(0, decimals);
     return BigInt(whole) * 10n ** BigInt(decimals) + BigInt(padded || "0");
+  }
+
+  function parseTtwoBudget(walletTtwoBalanceRaw) {
+    const input = $("#ttwoBudget")?.value.trim();
+    if (!input) return walletTtwoBalanceRaw;
+    const budgetRaw = parseUnits(input, CONFIG.ttwoDecimals);
+    if (budgetRaw <= 0n) throw new Error("TTWO to fund must be above zero.");
+    if (budgetRaw > walletTtwoBalanceRaw) throw new Error("TTWO to fund is higher than the connected wallet balance.");
+    return budgetRaw;
   }
 
   function formatUnits(value, decimals, maxFraction = 4) {
