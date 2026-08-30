@@ -1,6 +1,6 @@
 # Neon Mutt Run
 
-An original, free browser arcade survival game set in **Bubble City**. You play as **Stocky Vermicelli**, a wiry survivor navigating a scrolling, phone-friendly city playground full of wandering pedestrians, crooked-badge villains, rival crews, reckless traffic, ringing side hustles, lucky crates, and occasional loudmouth bosses. Its setting, visual language, characters, vehicle names, and mechanics are independent from any existing game franchise.
+An original, free browser arcade survival game set in **Bubble City**. You play as **Stocky Vermicelli**, a scrappy gator survivor navigating a scrolling, phone-friendly city playground full of wandering pedestrians, crooked-badge villains, rival crews, reckless traffic, ringing side hustles, lucky crates, and occasional loudmouth bosses. Its setting, visual language, characters, vehicle names, and mechanics are independent from any existing game franchise.
 
 ## Controls
 

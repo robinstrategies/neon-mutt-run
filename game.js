@@ -1,5 +1,5 @@
 (() => {
-  window.NMR_BUILD = '20260829-qa7';
+  window.NMR_BUILD = '20260829-gator1';
   const canvas = document.querySelector('#game');
   const ctx = canvas.getContext('2d');
   const W = canvas.width;
@@ -1269,7 +1269,7 @@
       ctx.arc(p.x, p.y, p.vehicle ? 55 : 35, p.a - 0.72, p.a + 0.72);
       ctx.stroke();
     }
-    if (!p.vehicle) person(p.x, p.y, p.a, '#44d6d0', '#ffcc69');
+    if (!p.vehicle) drawGator(p.x, p.y, p.a);
     game.particles.forEach(q => {
       ctx.fillStyle = q.c;
       ctx.fillRect(q.x, q.y, q.size || 4, q.size || 4);
@@ -1612,6 +1612,97 @@
     });
   }
 
+  function drawGator(x, y, a) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(a);
+
+    ctx.fillStyle = 'rgba(26,39,53,.32)';
+    ctx.beginPath();
+    ctx.ellipse(-2, 8, 22, 6, 0, 0, 7);
+    ctx.fill();
+
+    ctx.fillStyle = '#1f6f63';
+    ctx.beginPath();
+    ctx.moveTo(-12, -6);
+    ctx.lineTo(-32, -4);
+    ctx.lineTo(-41, 0);
+    ctx.lineTo(-32, 4);
+    ctx.lineTo(-12, 6);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#37b887';
+    ctx.fillRect(-12, -13, 7, 8);
+    ctx.fillRect(-12, 5, 7, 8);
+    ctx.fillRect(6, -14, 7, 8);
+    ctx.fillRect(6, 6, 7, 8);
+    ctx.fillStyle = '#173543';
+    ctx.fillRect(-12, -15, 9, 3);
+    ctx.fillRect(-12, 12, 9, 3);
+    ctx.fillRect(6, -16, 9, 3);
+    ctx.fillRect(6, 13, 9, 3);
+
+    ctx.fillStyle = '#35d8a6';
+    ctx.beginPath();
+    ctx.ellipse(-4, 0, 19, 11, 0, 0, 7);
+    ctx.fill();
+    ctx.fillStyle = '#d9ff5c';
+    ctx.beginPath();
+    ctx.ellipse(-5, 0, 9, 4, 0, 0, 7);
+    ctx.fill();
+
+    ctx.fillStyle = '#2fc790';
+    ctx.beginPath();
+    ctx.moveTo(6, -9);
+    ctx.lineTo(30, -7);
+    ctx.lineTo(39, 0);
+    ctx.lineTo(30, 7);
+    ctx.lineTo(6, 9);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#dfffe8';
+    ctx.beginPath();
+    ctx.arc(20, -7, 3, 0, 7);
+    ctx.arc(20, 7, 3, 0, 7);
+    ctx.fill();
+    ctx.fillStyle = '#102535';
+    ctx.fillRect(21, -8, 2, 2);
+    ctx.fillRect(21, 6, 2, 2);
+    ctx.fillRect(31, -2, 5, 4);
+
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 5; i++) {
+      const tx = 10 + i * 5;
+      ctx.beginPath();
+      ctx.moveTo(tx, -7);
+      ctx.lineTo(tx + 2, -10);
+      ctx.lineTo(tx + 4, -7);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(tx, 7);
+      ctx.lineTo(tx + 2, 10);
+      ctx.lineTo(tx + 4, 7);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    ctx.fillStyle = '#102535';
+    [-18, -10, -2, 6].forEach((sx, i) => {
+      ctx.beginPath();
+      ctx.moveTo(sx, -2);
+      ctx.lineTo(sx + 4, 0);
+      ctx.lineTo(sx, 2);
+      ctx.closePath();
+      ctx.fill();
+      if (i < 3) ctx.fillRect(sx + 3, -1, 3, 2);
+    });
+
+    ctx.restore();
+  }
+
   function person(x, y, a, jacket, hair, scale = 1, style = 'plain') {
     ctx.save();
     ctx.translate(x, y);
@@ -1844,6 +1935,7 @@
       keys.clear();
 
       assert('canvas and world stay phone-friendly', W === 960 && H === 600 && WORLD_W <= 3200 && WORLD_H <= 2200, `${W}x${H} in ${WORLD_W}x${WORLD_H}`);
+      assert('Stocky draws with a distinct gator silhouette', typeof drawGator === 'function', 'drawGator available');
       assert('Bubble City has varied buildings and storefronts', buildings.length >= 30 && stores.length >= 16, `${buildings.length} buildings, ${stores.length} stores`);
       assert('phones and garages exist for side hustles', phones.length >= 3 && garages.length >= 3, `${phones.length} phones, ${garages.length} garages`);
       assert('pedestrians visit stores and do not target the player', game.peds.length >= 12 && game.peds.every(ped => ped.target && ped.hp === undefined && ped.shootCd === undefined), `${game.peds.length} peds`);
@@ -2096,9 +2188,9 @@
   renderBoard(demoScores);
   reset();
   draw();
-  window.NMR_BOTTOM_REACHED = '20260829-qa7';
-  document.documentElement.dataset.nmrBuild = '20260829-qa7';
-  document.documentElement.dataset.nmrBottomReached = '20260829-qa7';
+  window.NMR_BOTTOM_REACHED = '20260829-gator1';
+  document.documentElement.dataset.nmrBuild = '20260829-gator1';
+  document.documentElement.dataset.nmrBottomReached = '20260829-gator1';
   if (new URLSearchParams(location.search).has('selftest')) {
     publishSelfTest({
       passed: 0,
