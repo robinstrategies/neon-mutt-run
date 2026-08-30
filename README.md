@@ -58,7 +58,7 @@ create policy "scores are readable" on public.scores for select using (true);
 create policy "anyone can post a score" on public.scores for insert with check (true);
 ```
 
-2. Copy `supabase-config.js`, add your project URL and anonymous key, then deploy. The game is already wired to switch from demo scores to the global board once those values are present.
+2. The page is connected to the RobinStrategies Supabase project with a browser-safe publishable key. To use a different project, replace the public `GSA_BOARD` URL/key in `game.js` and run the SQL above.
 
 For a production leaderboard, add a small server-side score validation endpoint or Supabase Edge Function. Browser-only clients can be tampered with, so direct inserts are best suited to a casual community game.
 

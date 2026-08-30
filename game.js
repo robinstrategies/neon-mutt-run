@@ -1,5 +1,9 @@
 (() => {
-  window.NMR_BUILD = '20260829-simplecopy1';
+  window.NMR_BUILD = '20260829-supabase6';
+  window.GSA_BOARD = window.GSA_BOARD || {
+    "anonKey": "sb_publishable_oSLncZRM0-fSmWQK-islCA_-3fl5MiN",
+    "url": "https://ztngfvexnbuzwlpmnhrn.supabase.co"
+  };
   const canvas = document.querySelector('#game');
   if (!canvas.hasAttribute('tabindex')) canvas.tabIndex = 0;
   const ctx = canvas.getContext('2d');
@@ -2209,7 +2213,7 @@
       assert('retired currency copy is absent from player-facing UI', !document.body.innerText.toLowerCase().includes(retiredCurrencyCopy) && !document.body.innerText.includes(retiredHudLabel), document.body.innerText);
 
       const boardSize = demoScores.length;
-      const c = window.NEON_MUTT_SUPABASE || {};
+      const c = window.GSA_BOARD || window.NEON_MUTT_SUPABASE || {};
       if (!c.url && !c.anonKey) {
         ui.name.value = 'QA RASCAL';
         $('#submitScore').textContent = 'POST';
@@ -2250,14 +2254,23 @@
     return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
+  function supabaseHeaders(contentType = false) {
+    const c = window.GSA_BOARD || window.NEON_MUTT_SUPABASE || {};
+    const key = String(c.anonKey || '');
+    const headers = { apikey: key };
+    if (key && !key.startsWith('sb_publishable_')) headers.Authorization = `Bearer ${key}`;
+    if (contentType) headers['Content-Type'] = 'application/json';
+    return headers;
+  }
+
   async function leaderboard() {
-    const c = window.NEON_MUTT_SUPABASE || {};
+    const c = window.GSA_BOARD || window.NEON_MUTT_SUPABASE || {};
     if (!c.url || !c.anonKey) {
       renderBoard(demoScores);
       return;
     }
     try {
-      const r = await fetch(`${c.url}/rest/v1/scores?select=name,score,kills,survival_seconds&order=score.desc&limit=5`, { headers: { apikey: c.anonKey, Authorization: `Bearer ${c.anonKey}` } });
+      const r = await fetch(`${c.url}/rest/v1/scores?select=name,score,kills,survival_seconds&order=score.desc&limit=5`, { headers: supabaseHeaders() });
       if (!r.ok) throw Error();
       renderBoard(await r.json(), true);
     } catch {
@@ -2270,10 +2283,10 @@
     if (!game) return;
     const name = (ui.name.value.trim() || 'RASCAL').toUpperCase();
     const entry = { name, score: score(), kills: game.kills, survival_seconds: Math.floor(game.t) };
-    const c = window.NEON_MUTT_SUPABASE || {};
+    const c = window.GSA_BOARD || window.NEON_MUTT_SUPABASE || {};
     if (c.url && c.anonKey) {
       try {
-        await fetch(`${c.url}/rest/v1/scores`, { method: 'POST', headers: { apikey: c.anonKey, Authorization: `Bearer ${c.anonKey}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(entry) });
+        await fetch(`${c.url}/rest/v1/scores`, { method: 'POST', headers: { ...supabaseHeaders(true), Prefer: 'return=minimal' }, body: JSON.stringify(entry) });
       } catch {}
     } else {
       demoScores.push(entry);
@@ -2314,11 +2327,12 @@
   });
 
   renderBoard(demoScores);
+  leaderboard();
   reset();
   draw();
-  window.NMR_BOTTOM_REACHED = '20260829-simplecopy1';
-  document.documentElement.dataset.nmrBuild = '20260829-simplecopy1';
-  document.documentElement.dataset.nmrBottomReached = '20260829-simplecopy1';
+  window.NMR_BOTTOM_REACHED = '20260829-supabase6';
+  document.documentElement.dataset.nmrBuild = '20260829-supabase6';
+  document.documentElement.dataset.nmrBottomReached = '20260829-supabase6';
   if (params.has('selftest')) {
     publishSelfTest({
       passed: 0,
