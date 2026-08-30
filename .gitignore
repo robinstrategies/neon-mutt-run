@@ -1,1 +1,3 @@
 .vercel
+snapshots/*.csv
+snapshots/*.json

@@ -61,6 +61,45 @@ create policy "anyone can post a score" on public.scores for insert with check (
 
 For a production leaderboard, add a small server-side score validation endpoint or Supabase Edge Function. Browser-only clients can be tampered with, so direct inserts are best suited to a casual community game.
 
+## GSA holder snapshot tool
+
+The repo includes a simple Robinhood Chain holder snapshot tool for GSA:
+
+```bash
+node tools/robinhood-holder-snapshot.mjs
+```
+
+It creates a CSV in `snapshots/` using the GSA contract:
+
+```text
+0xb4396384569cf9b00058edb11d6bf12a626e1e18
+```
+
+Useful runs:
+
+```bash
+# Current indexed holder snapshot from Robinhood Chain Blockscout
+node tools/robinhood-holder-snapshot.mjs --json snapshots/gsa-holders.json
+
+# Add pro-rata planning weights for a stock-token budget
+node tools/robinhood-holder-snapshot.mjs --airdrop-budget 1000 --json snapshots/gsa-airdrop-plan.json
+
+# Exclude contract wallets from the planning file
+node tools/robinhood-holder-snapshot.mjs --exclude-contracts --airdrop-budget 1000
+
+# Reproducible GSA snapshot from raw ERC-20 Transfer logs
+node tools/robinhood-holder-snapshot.mjs --source rpc --to-block latest
+```
+
+The tool does not transfer tokens, stock tokens, or funds. It only exports addresses, GSA balances, and optional pro-rata allocation weights for review. Any real stock-token distribution should go through the proper platform/API, eligibility checks, and compliance flow.
+
+If Node on Windows throws a certificate error, run the command from PowerShell like this:
+
+```powershell
+$env:NODE_OPTIONS='--use-system-ca'
+node tools/robinhood-holder-snapshot.mjs
+```
+
 ## Publish free/cheap
 
 Push this repository to a public GitHub repository. GitHub Pages, Cloudflare Pages, and Netlify can all host the static files inexpensively. Point a custom domain at the host when you have one.
