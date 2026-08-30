@@ -49,45 +49,45 @@ button { cursor: pointer; }
 
 a { color: inherit; }
 
-.site {
-  position: relative;
-  min-height: 100vh;
-  isolation: isolate;
-  overflow: hidden;
-}
-
-.page-bg,
-.page-shade {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: clamp(980px, 150svh, 1450px);
-  pointer-events: none;
-}
-
-.page-bg {
-  z-index: 0;
-  object-fit: cover;
-  object-position: center top;
-  filter: saturate(1.28) contrast(1.14) brightness(1.04);
-}
-
-.page-shade {
-  z-index: 1;
-  background:
-    radial-gradient(circle at 47% 35%, transparent 0 13rem, rgba(9,16,31,.12) 27rem, rgba(9,16,31,.72) 64rem),
-    linear-gradient(180deg, rgba(9,16,31,.06), rgba(9,16,31,.62) 72%, #09101f 100%),
-    linear-gradient(90deg, rgba(255,22,139,.24), rgba(36,244,255,.08));
-}
+.site { min-height: 100vh; }
 
 .hero {
   position: relative;
-  min-height: 100svh;
   display: grid;
   place-items: center;
-  z-index: 2;
   padding: 44px 22px;
+}
+
+.poster {
+  position: relative;
+  min-height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.poster-img,
+.poster-shade {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.poster-img {
+  z-index: -2;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  filter: saturate(1.18) contrast(1.06);
+}
+
+.poster-shade {
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 47% 35%, transparent 0 13rem, rgba(9,16,31,.1) 27rem, rgba(9,16,31,.65) 64rem),
+    linear-gradient(180deg, rgba(9,16,31,.08), rgba(9,16,31,.44) 76%, #09101f 100%),
+    linear-gradient(90deg, rgba(255,22,139,.2), rgba(36,244,255,.06));
 }
 
 .hero-content {
@@ -135,6 +135,31 @@ small, .eyebrow {
 
 .neon-title span { display: block; }
 
+.story-panels {
+  position: relative;
+  z-index: 1;
+}
+
+.story-panel {
+  margin: 0;
+  min-height: 92svh;
+  border-top: 1px solid rgba(255, 255, 255, .14);
+}
+
+.story-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at center, transparent 0 55%, rgba(9,16,31,.2) 100%),
+    linear-gradient(180deg, rgba(9,16,31,0), rgba(9,16,31,.34));
+}
+
+.story-panel .poster-img {
+  filter: saturate(1.14) contrast(1.05);
+}
+
 .primary,
 .secondary {
   display: inline-flex;
@@ -170,7 +195,7 @@ small, .eyebrow {
 .game-shell,
 .disclaimer {
   position: relative;
-  z-index: 2;
+  z-index: 1;
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
 }
@@ -617,8 +642,8 @@ dialog button {
     place-items: center;
   }
 
-  .page-bg {
-    object-position: 47% top;
+  .poster-img {
+    object-position: 47% center;
   }
 
   .hero-content {
