@@ -51,7 +51,6 @@ const artifact = {
   deployedBytecode: `0x${compiled.evm.deployedBytecode.object}`,
   compiler: solc.version(),
   optimizer: { enabled: true, runs: 200 },
-  generatedAt: new Date().toISOString(),
 };
 
 await mkdir(dirname(ARTIFACT_PATH), { recursive: true });

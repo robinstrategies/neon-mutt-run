@@ -54,7 +54,10 @@
     if (state.page === "holder") initHolder();
 
     if (state.provider) {
-      setStatus("work", isMockWallet() ? "Local mock wallet ready for testing." : "Wallet detected. Connect when ready.");
+      const hasClaimTarget = state.page !== "holder" || hasClaimConfig();
+      if (hasClaimTarget) {
+        setStatus("work", isMockWallet() ? "Local mock wallet ready for testing." : "Wallet detected. Connect when ready.");
+      }
     }
   }
 
@@ -87,9 +90,20 @@
     $("#roundId").value = getInitialRoundId();
     $("#vaultAddress").value = getInitialVaultAddress();
 
-    $("#connectButton").addEventListener("click", () => connectWallet().catch(handleError));
+    $("#connectButton").addEventListener("click", async () => {
+      try {
+        await connectWallet();
+        if (hasClaimConfig()) await checkClaim();
+      } catch (error) {
+        handleError(error);
+      }
+    });
     $("#checkClaimButton").addEventListener("click", () => checkClaim().catch(handleError));
     $("#claimButton").addEventListener("click", () => claimTtwo().catch(handleError));
+
+    if (!hasClaimConfig()) {
+      setStatus("bad", "No live claim round is set yet. Use the daily claim link when it is posted.");
+    }
   }
 
   function listenForWalletProviders() {
@@ -863,6 +877,10 @@
     if (fromConfig) return fromConfig;
     const fromStorage = normalizeAddressSoft(localStorage.getItem("gsaClaimVault"));
     return fromStorage || (isMockWallet() ? "0x2222222222222222222222222222222222222222" : "");
+  }
+
+  function hasClaimConfig() {
+    return Boolean(normalizeAddressSoft($("#vaultAddress")?.value) && $("#roundId")?.value.trim());
   }
 
   function saveVaultAddress(options = {}) {

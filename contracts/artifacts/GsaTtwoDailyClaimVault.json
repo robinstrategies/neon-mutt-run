@@ -626,6 +626,5 @@
   "optimizer": {
     "enabled": true,
     "runs": 200
-  },
-  "generatedAt": "2026-08-30T16:05:28.435Z"
+  }
 }

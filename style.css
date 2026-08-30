@@ -212,6 +212,41 @@ small, .eyebrow {
 
 .neon-title span { display: block; }
 
+.hero-claim-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: clamp(46px, 6vw, 60px);
+  margin-top: clamp(16px, 3vw, 28px);
+  padding: 0 clamp(22px, 5vw, 38px);
+  border: 2px solid rgba(255, 244, 207, .86);
+  border-radius: 999px;
+  color: #07101e;
+  background: linear-gradient(135deg, var(--lime), var(--cyan) 52%, #fff4cf);
+  box-shadow:
+    0 0 14px rgba(217, 255, 92, .76),
+    0 0 34px rgba(36, 244, 255, .58),
+    0 0 64px rgba(255, 22, 139, .34),
+    7px 7px 0 rgba(255, 22, 139, .84);
+  font: 900 clamp(.95rem, 2.4vw, 1.25rem)/1 "DM Mono", monospace;
+  letter-spacing: 1px;
+  text-decoration: none;
+  text-transform: uppercase;
+  transform: rotate(-1.4deg);
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+
+.hero-claim-button:hover,
+.hero-claim-button:focus-visible {
+  transform: rotate(-1.4deg) translate(-2px, -2px);
+  filter: saturate(1.2);
+  box-shadow:
+    0 0 18px rgba(217, 255, 92, .9),
+    0 0 42px rgba(36, 244, 255, .7),
+    0 0 76px rgba(255, 22, 139, .42),
+    10px 10px 0 rgba(255, 22, 139, .88);
+}
+
 .primary,
 .secondary {
   display: inline-flex;
@@ -865,6 +900,7 @@ dialog button {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .neon-title { animation: none; }
+  .hero-claim-button { transition: none; }
 }
 
 @media (max-width: 820px) {
