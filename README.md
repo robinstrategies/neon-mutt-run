@@ -1,6 +1,6 @@
 # Grand Stock Auto
 
-**Grand Stock Auto** is a neon parody memecoin landing page for the **GSA / TTWO** idea, paired with a free browser mini game called **Stocky Gator Sim**. The landing page introduces the ticker, long.xyz launch concept, community fee-drip/burn idea, upcoming open-source AI alert bot, and the playable leaderboard hook.
+**Grand Stock Auto** is a neon parody memecoin landing page for the **GSA / TTWO** idea, paired with a free browser mini game called **Stocky Gator Sim**. The landing page introduces the ticker, robinhood chain goal, community fee-drip/burn idea, upcoming open-source AI alert bot, and the playable leaderboard hook.
 
 The game is set in **Bubble City**. You play as **Stocky Vermicelli**, a scrappy gator survivor navigating a scrolling, phone-friendly city playground full of wandering pedestrians, crooked-badge villains, rival crews, reckless traffic, ringing side hustles, lucky crates, and occasional loudmouth bosses.
 
@@ -10,9 +10,8 @@ This is an unofficial parody project for entertainment purposes only. It is not 
 
 - **Ticker:** GSA
 - **Pair:** GSA / TTWO
-- **Launch venue:** app.long.xyz
-- **Goal:** to be the 1 BN runner on long.xyz
-- **Community concept:** 25% of fees drip toward community holders and another 25% routes to burns
+- **Goal:** to be the 1 BN runner on robinhood chain
+- **Community concept:** fees drip towards the community in the form of stocks and burns encouraging community building
 - **Upcoming utility:** an open-source AI Telegram bot that tracks GTA 6, Take-Two game news, TTWO price action, and posts alerts to Telegram and Twitter. Users can retarget the source to the stock of their choice.
 
 ## Controls
