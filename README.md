@@ -100,6 +100,40 @@ $env:NODE_OPTIONS='--use-system-ca'
 node tools/robinhood-holder-snapshot.mjs
 ```
 
+## TTWO holder airdrop tool
+
+The repo also includes a local admin tool that can split TTWO Robinhood stock-tokens across GSA holders:
+
+```powershell
+$env:NODE_OPTIONS='--use-system-ca'
+npm install
+node tools/ttwo-airdrop.mjs --budget 10
+```
+
+That command is a dry run. It creates a CSV plan and sends nothing.
+
+To split everything in a wallet, first preview with the wallet address:
+
+```powershell
+node tools/ttwo-airdrop.mjs --from 0xYourWalletAddress --budget all
+```
+
+To actually send, use a saved holder snapshot and provide the private key only on your local machine:
+
+```powershell
+node tools/robinhood-holder-snapshot.mjs --exclude-contracts --json snapshots/gsa-airdrop-plan.json
+$env:GSA_AIRDROP_PRIVATE_KEY='0xYourPrivateKey'
+node tools/ttwo-airdrop.mjs --snapshot snapshots/gsa-airdrop-plan.json --budget all --send --i-understand-this-transfers-real-assets
+```
+
+The tool auto-finds TTWO on Robinhood Chain from Robinhood's public assets API. As of this version, TTWO resolves to:
+
+```text
+0x5e81213613b6B86EaB4c6c50d718d34359459786
+```
+
+Do not put private keys, seed phrases, passkeys, or wallet secrets into the public website. The real sender is intentionally local-only, dry-run by default, and requires an explicit real-assets flag before it broadcasts transfers.
+
 ## Publish free/cheap
 
 Push this repository to a public GitHub repository. GitHub Pages, Cloudflare Pages, and Netlify can all host the static files inexpensively. Point a custom domain at the host when you have one.

@@ -1,0 +1,13 @@
+{
+  "name": "grand-stock-auto",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "scripts": {
+    "snapshot:gsa": "node tools/robinhood-holder-snapshot.mjs",
+    "airdrop:ttwo": "node tools/ttwo-airdrop.mjs"
+  },
+  "dependencies": {
+    "ethers": "^6.17.0"
+  }
+}
