@@ -25,7 +25,7 @@ const input = {
     optimizer: { enabled: true, runs: 200 },
     outputSelection: {
       "*": {
-        "*": ["abi", "evm.bytecode.object", "evm.deployedBytecode.object", "metadata"],
+        "*": ["abi", "evm.bytecode.object", "evm.deployedBytecode.object", "evm.deployedBytecode.immutableReferences", "metadata"],
       },
     },
   },
@@ -49,6 +49,7 @@ const artifact = {
   abi: compiled.abi,
   bytecode: `0x${compiled.evm.bytecode.object}`,
   deployedBytecode: `0x${compiled.evm.deployedBytecode.object}`,
+  immutableReferences: compiled.evm.deployedBytecode.immutableReferences || {},
   compiler: solc.version(),
   optimizer: { enabled: true, runs: 200 },
 };

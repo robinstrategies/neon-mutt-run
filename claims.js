@@ -12,6 +12,7 @@
     gsaDecimals: 18,
     ttwoDecimals: 18,
     gsaFromBlock: 49_987_000n,
+    snapshotConfirmations: 12n,
     logChunkSize: 10_000n,
     rpcBatchSize: 60,
     transferTopic: "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
@@ -21,7 +22,7 @@
       approve: "0x095ea7b3",
       allowance: "0xdd62ed3e",
       balanceOf: "0x70a08231",
-      createRound: "0xccd64281",
+      createRound: "0x4a6f7b54",
       setAllocations: "0x30c82017",
       fundRound: "0x4b361a24",
       openRound: "0xbde22ae0",
@@ -29,6 +30,7 @@
       claimable: "0xa0c7f71c",
       roundStatus: "0xe35154a5",
       ttwo: "0x4824103c",
+      owner: "0x8da5cb5b",
       latestOpenRoundId: "0xf45abdc7",
     },
   });
@@ -40,6 +42,7 @@
     announcedProviders: [],
     snapshot: null,
     csvUrl: "",
+    vaultArtifact: null,
     busy: false,
     stopRequested: false,
     claimReady: false,
@@ -139,8 +142,11 @@
 
   function isMockWallet() {
     const params = new URLSearchParams(window.location.search);
-    const localHost = ["localhost", "127.0.0.1", ""].includes(window.location.hostname);
-    return localHost && params.get("mockWallet") === "1";
+    return isLocalHost() && params.get("mockWallet") === "1";
+  }
+
+  function isLocalHost() {
+    return ["localhost", "127.0.0.1", ""].includes(window.location.hostname);
   }
 
   function createMockProvider() {
@@ -150,6 +156,7 @@
     const mockAccount = state.page === "holder" ? claimAccount : adminAccount;
     const mockVault = "0x2222222222222222222222222222222222222222";
     const mockBlock = 50_061_900n;
+    const mockBlockHash = "0x" + "b".repeat(64);
     const requestedMockHolders = Number(params.get("mockHolders") || "140");
     const mockHolderCount = Number.isSafeInteger(requestedMockHolders)
       ? Math.min(Math.max(requestedMockHolders, 1), 1_200)
@@ -174,6 +181,7 @@
       mockRounds.set(roundId.toString(), {
         snapshotHash: "0x" + "a".repeat(64),
         snapshotBlock: mockBlock,
+        snapshotBlockHash: mockBlockHash,
         allocationCount: rows.length,
         totalAllocated: rows.reduce((sum, row) => sum + row.ttwoRaw, 0n),
         funded: mockTtwoWalletBalance,
@@ -191,6 +199,7 @@
         mockRounds.set(key, {
           snapshotHash: "0x" + "0".repeat(64),
           snapshotBlock: 0n,
+          snapshotBlockHash: "0x" + "0".repeat(64),
           allocationCount: 0,
           totalAllocated: 0n,
           funded: 0n,
@@ -216,6 +225,10 @@
         if (method === "eth_chainId") return CONFIG.chainIdHex;
         if (method === "wallet_switchEthereumChain" || method === "wallet_addEthereumChain") return null;
         if (method === "eth_blockNumber") return toQuantityHex(mockBlock);
+        if (method === "eth_getBlockByNumber") {
+          const requestedBlock = hexToBigInt(requestParams?.[0] || toQuantityHex(mockBlock));
+          return { hash: mockBlockHash, number: toQuantityHex(requestedBlock) };
+        }
         if (method === "eth_getTransactionReceipt") return receipts.get(normalizeHash(requestParams?.[0])) || null;
         if (method === "eth_getLogs") {
           const range = requestParams?.[0] || {};
@@ -262,6 +275,9 @@
           if (to === mockVault && data.startsWith(CONFIG.selectors.ttwo)) {
             return encodeAddressReturn(CONFIG.ttwoContract);
           }
+          if (to === mockVault && data.startsWith(CONFIG.selectors.owner)) {
+            return encodeAddressReturn(adminAccount);
+          }
           if (to === mockVault && data.startsWith(CONFIG.selectors.latestOpenRoundId)) {
             return toUint256Hex(mockLatestOpenRoundId);
           }
@@ -271,6 +287,7 @@
             return encodeStaticReturn([
               round.snapshotHash,
               round.snapshotBlock,
+              round.snapshotBlockHash,
               BigInt(round.allocationCount),
               round.totalAllocated,
               round.funded,
@@ -310,6 +327,7 @@
             const round = getRound(roundId);
             round.snapshotHash = `0x${wordAt(data, 1)}`;
             round.snapshotBlock = readWord(data, 2);
+            round.snapshotBlockHash = `0x${wordAt(data, 3)}`;
             round.exists = true;
           }
 
@@ -451,9 +469,12 @@
       const ttwoBudgetRaw = parseTtwoBudget(walletTtwoBalanceRaw);
       setAdminStats({ ttwo: `${formatUnits(walletTtwoBalanceRaw, CONFIG.ttwoDecimals, 6)} wallet · ${formatUnits(ttwoBudgetRaw, CONFIG.ttwoDecimals, 6)} round` });
 
-      const currentBlock = hexToBigInt(await chainCall("eth_blockNumber", []));
-      setAdminStats({ block: currentBlock.toString() });
-      const balances = await buildHolderBalances(currentBlock);
+      const latestBlock = hexToBigInt(await chainCall("eth_blockNumber", []));
+      const snapshotBlock = latestBlock > CONFIG.snapshotConfirmations ? latestBlock - CONFIG.snapshotConfirmations : latestBlock;
+      const snapshotBlockData = await chainCall("eth_getBlockByNumber", [toQuantityHex(snapshotBlock), false]);
+      const snapshotBlockHash = normalizeBytes32(snapshotBlockData?.hash);
+      setAdminStats({ block: snapshotBlock.toString() });
+      const balances = await buildHolderBalances(snapshotBlock);
       const blockedWallets = parseAddressList($("#blockedWallets").value);
 
       let holders = Array.from(balances.entries())
@@ -471,7 +492,7 @@
 
       if ($("#excludeContracts").checked && holders.length) {
         setStatus("work", "Checking for contract wallets...");
-        holders = await excludeContractWallets(holders);
+        holders = await excludeContractWallets(holders, snapshotBlock);
       }
 
       holders.sort((a, b) => compareBigIntDesc(a.balanceRaw, b.balanceRaw));
@@ -480,7 +501,8 @@
 
       state.snapshot = {
         account: state.account,
-        block: currentBlock,
+        block: snapshotBlock,
+        blockHash: snapshotBlockHash,
         minRaw,
         walletTtwoBalanceRaw,
         ttwoBalanceRaw: ttwoBudgetRaw,
@@ -493,7 +515,7 @@
       renderRows(rows);
       setAdminStats({
         holders: rows.length.toLocaleString(),
-        block: currentBlock.toString(),
+        block: snapshotBlock.toString(),
         ttwo: `${formatUnits(walletTtwoBalanceRaw, CONFIG.ttwoDecimals, 6)} wallet · ${formatUnits(ttwoBudgetRaw, CONFIG.ttwoDecimals, 6)} round`,
       });
       updatePublishAvailability();
@@ -524,14 +546,14 @@
 
     try {
       await ensureRobinhoodChain();
-      await assertClaimVault(vault);
+      await assertClaimVault(vault, { requireOwner: true });
 
       const snapshotHash = await snapshotDigest(state.snapshot, roundId);
       let round = await readRoundStatus(vault, roundId);
 
       if (!round.exists) {
         setStatus("work", "Approve createRound in Rabby.");
-        await sendAndWait(vault, encodeCreateRound(roundId, snapshotHash, state.snapshot.block, `GSA TTWO ${roundId.toString()}`));
+        await sendAndWait(vault, encodeCreateRound(roundId, snapshotHash, state.snapshot.block, state.snapshot.blockHash, `GSA TTWO ${roundId.toString()}`));
       }
 
       const rows = state.snapshot.rows.filter((row) => row.ttwoRaw > 0n);
@@ -647,10 +669,10 @@
     }
 
     setStatus("work", `Processed ${logCount.toLocaleString()} GSA transfers. Verifying current balances...`);
-    return verifyPositiveBalances(balances);
+    return verifyPositiveBalances(balances, currentBlock);
   }
 
-  async function verifyPositiveBalances(balances) {
+  async function verifyPositiveBalances(balances, snapshotBlock) {
     const candidates = Array.from(balances.entries())
       .filter(([, balance]) => balance > 0n)
       .map(([address]) => address);
@@ -661,7 +683,7 @@
       setStatus("work", `Verifying balances ${index + 1}–${Math.min(index + batch.length, candidates.length)} of ${candidates.length}...`);
       const results = await chainBatch(batch.map((address) => ({
         method: "eth_call",
-        params: [{ to: CONFIG.gsaContract, data: encodeBalanceOf(address) }, "latest"],
+        params: [{ to: CONFIG.gsaContract, data: encodeBalanceOf(address) }, toQuantityHex(snapshotBlock)],
       })));
       for (let offset = 0; offset < batch.length; offset += 1) {
         const raw = hexToBigInt(results[offset]);
@@ -681,13 +703,13 @@
     if (to !== CONFIG.zeroAddress) balances.set(to, (balances.get(to) || 0n) + value);
   }
 
-  async function excludeContractWallets(holders) {
+  async function excludeContractWallets(holders, snapshotBlock) {
     const keepers = [];
     for (let index = 0; index < holders.length; index += CONFIG.rpcBatchSize) {
       const batch = holders.slice(index, index + CONFIG.rpcBatchSize);
       const results = await chainBatch(batch.map((holder) => ({
         method: "eth_getCode",
-        params: [holder.address, "latest"],
+        params: [holder.address, toQuantityHex(snapshotBlock)],
       })));
       for (let offset = 0; offset < batch.length; offset += 1) {
         if (!results[offset] || results[offset] === "0x") keepers.push(batch[offset]);
@@ -723,16 +745,17 @@
 
   async function readRoundStatus(vault, roundId) {
     const data = await chainCall("eth_call", [{ to: vault, data: encodeRoundStatus(roundId) }, "latest"]);
-    const chunks = staticChunks(data, 8);
+    const chunks = staticChunks(data, 9);
     return {
       snapshotHash: `0x${chunks[0]}`,
       snapshotBlock: BigInt(`0x${chunks[1]}`),
-      allocationCount: Number(BigInt(`0x${chunks[2]}`)),
-      totalAllocated: BigInt(`0x${chunks[3]}`),
-      funded: BigInt(`0x${chunks[4]}`),
-      claimed: BigInt(`0x${chunks[5]}`),
-      claimsOpen: BigInt(`0x${chunks[6]}`) === 1n,
-      exists: BigInt(`0x${chunks[7]}`) === 1n,
+      snapshotBlockHash: `0x${chunks[2]}`,
+      allocationCount: Number(BigInt(`0x${chunks[3]}`)),
+      totalAllocated: BigInt(`0x${chunks[4]}`),
+      funded: BigInt(`0x${chunks[5]}`),
+      claimed: BigInt(`0x${chunks[6]}`),
+      claimsOpen: BigInt(`0x${chunks[7]}`) === 1n,
+      exists: BigInt(`0x${chunks[8]}`) === 1n,
     };
   }
 
@@ -751,18 +774,70 @@
     updateHolderAvailability();
   }
 
-  async function assertClaimVault(vault) {
-    await assertContract(vault);
+  async function assertClaimVault(vault, options = {}) {
+    const code = await assertContract(vault);
+    if (!isMockWallet()) {
+      const artifact = await getClaimVaultArtifact();
+      if (!deployedCodeMatchesArtifact(code, artifact)) {
+        throw new Error("This vault code does not match the official GSA claim vault build. Do not approve this transaction.");
+      }
+    }
+
     const data = await chainCall("eth_call", [{ to: vault, data: CONFIG.selectors.ttwo }, "latest"]);
     const ttwo = readReturnAddress(data, 0);
     if (ttwo !== CONFIG.ttwoContract) {
       throw new Error("This vault does not point at the expected TTWO token. Do not use this claim link.");
+    }
+
+    if (options.requireOwner) {
+      const ownerData = await chainCall("eth_call", [{ to: vault, data: CONFIG.selectors.owner }, "latest"]);
+      const owner = readReturnAddress(ownerData, 0);
+      if (owner !== state.account) {
+        throw new Error("Connected wallet is not the owner of this claim vault. Do not fund it from this page.");
+      }
     }
   }
 
   async function assertContract(address) {
     const code = await chainCall("eth_getCode", [address, "latest"]);
     if (!code || code === "0x") throw new Error("No contract found at that vault address.");
+    return String(code).toLowerCase();
+  }
+
+  async function getClaimVaultArtifact() {
+    if (!state.vaultArtifact) state.vaultArtifact = await fetchJson(CONFIG.artifactUrl);
+    return state.vaultArtifact;
+  }
+
+  function deployedCodeMatchesArtifact(code, artifact) {
+    const actual = stripHexPrefix(code);
+    const expected = stripHexPrefix(artifact?.deployedBytecode);
+    if (!actual || !expected || actual.length !== expected.length) return false;
+
+    const ranges = immutableByteRanges(artifact?.immutableReferences)
+      .map((range) => ({ start: range.start * 2, end: (range.start + range.length) * 2 }))
+      .sort((a, b) => a.start - b.start);
+
+    let cursor = 0;
+    for (const range of ranges) {
+      if (actual.slice(cursor, range.start) !== expected.slice(cursor, range.start)) return false;
+      cursor = Math.max(cursor, range.end);
+    }
+    return actual.slice(cursor) === expected.slice(cursor);
+  }
+
+  function immutableByteRanges(references) {
+    const ranges = [];
+    for (const entry of Object.values(references || {})) {
+      if (Array.isArray(entry)) {
+        ranges.push(...entry);
+      } else {
+        for (const nested of Object.values(entry || {})) {
+          if (Array.isArray(nested)) ranges.push(...nested);
+        }
+      }
+    }
+    return ranges.filter((range) => Number.isSafeInteger(range.start) && Number.isSafeInteger(range.length));
   }
 
   async function chainCall(method, params) {
@@ -804,8 +879,8 @@
     return response.json();
   }
 
-  function encodeCreateRound(roundId, snapshotHash, snapshotBlock, label) {
-    return `${CONFIG.selectors.createRound}${encodeUint256(roundId)}${normalizeBytes32(snapshotHash).slice(2)}${encodeUint256(snapshotBlock)}${encodeUint256(128n)}${encodeStringTail(label)}`;
+  function encodeCreateRound(roundId, snapshotHash, snapshotBlock, snapshotBlockHash, label) {
+    return `${CONFIG.selectors.createRound}${encodeUint256(roundId)}${normalizeBytes32(snapshotHash).slice(2)}${encodeUint256(snapshotBlock)}${normalizeBytes32(snapshotBlockHash).slice(2)}${encodeUint256(160n)}${encodeStringTail(label)}`;
   }
 
   function encodeSetAllocations(roundId, accounts, amounts) {
@@ -917,7 +992,7 @@
       row.gsaRaw.toString(),
       row.ttwoRaw.toString(),
     ].join(":")).join("|");
-    const payload = `${roundId.toString()}|${snapshot.account}|${snapshot.block.toString()}|${stable}`;
+    const payload = `${roundId.toString()}|${snapshot.account}|${snapshot.block.toString()}|${snapshot.blockHash}|${stable}`;
     return sha256Hex(payload);
   }
 
@@ -952,6 +1027,7 @@
     const params = new URLSearchParams(window.location.search);
     const fromConfig = normalizeAddressSoft(window.GSA_CLAIMS_CONFIG?.claimVaultAddress);
     if (fromConfig) return fromConfig;
+    if (state.page === "holder" && !isLocalHost()) return "";
     const fromUrl = normalizeAddressSoft(params.get("contract"));
     if (fromUrl) return fromUrl;
     const fromStorage = normalizeAddressSoft(localStorage.getItem("gsaClaimVault"));
@@ -1157,6 +1233,7 @@
       claimVault: normalizeAddressSoft($("#vaultAddress").value) || null,
       roundId: roundId.toString(),
       snapshotBlock: state.snapshot.block.toString(),
+      snapshotBlockHash: state.snapshot.blockHash,
       snapshotHash: await snapshotDigest(state.snapshot, roundId),
       csvSha256: await sha256Hex(csv),
       ownerWallet: state.snapshot.account,
@@ -1189,6 +1266,7 @@
       "ttwo_claim",
       "status",
       "snapshot_block",
+      "snapshot_block_hash",
       "owner",
       "created_at",
     ].join(",")];
@@ -1202,6 +1280,7 @@
         formatUnits(row.ttwoRaw, CONFIG.ttwoDecimals, 18),
         row.status,
         snapshot.block.toString(),
+        snapshot.blockHash,
         snapshot.account,
         snapshot.createdAt,
       ].map(csvCell).join(","));
@@ -1300,6 +1379,10 @@
   function hexToBigInt(hex) {
     if (!hex || hex === "0x") return 0n;
     return BigInt(hex);
+  }
+
+  function stripHexPrefix(value) {
+    return String(value || "").replace(/^0x/i, "").toLowerCase();
   }
 
   function toQuantityHex(value) {

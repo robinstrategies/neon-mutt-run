@@ -29,6 +29,7 @@ contract GsaTtwoDailyClaimVault {
     struct Round {
         bytes32 snapshotHash;
         uint256 snapshotBlock;
+        bytes32 snapshotBlockHash;
         uint256 allocationCount;
         uint256 totalAllocated;
         uint256 funded;
@@ -51,7 +52,7 @@ contract GsaTtwoDailyClaimVault {
     uint256 private _locked;
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-    event RoundCreated(uint256 indexed roundId, bytes32 snapshotHash, uint256 snapshotBlock, string label);
+    event RoundCreated(uint256 indexed roundId, bytes32 snapshotHash, uint256 snapshotBlock, bytes32 snapshotBlockHash, string label);
     event AllocationsSet(uint256 indexed roundId, uint256 chunkCount, uint256 allocationCount, uint256 totalAllocated);
     event RoundFunded(uint256 indexed roundId, uint256 amount, uint256 funded);
     event ClaimsOpened(uint256 indexed roundId);
@@ -85,19 +86,20 @@ contract GsaTtwoDailyClaimVault {
         owner = newOwner;
     }
 
-    function createRound(uint256 roundId, bytes32 snapshotHash, uint256 snapshotBlock, string calldata label) external onlyOwner {
-        if (roundId == 0 || snapshotBlock == 0) revert BadRound();
+    function createRound(uint256 roundId, bytes32 snapshotHash, uint256 snapshotBlock, bytes32 snapshotBlockHash, string calldata label) external onlyOwner {
+        if (roundId == 0 || snapshotBlock == 0 || snapshotBlockHash == bytes32(0)) revert BadRound();
         if (_rounds[roundId].exists) revert RoundExists();
 
         _rounds[roundId].snapshotHash = snapshotHash;
         _rounds[roundId].snapshotBlock = snapshotBlock;
+        _rounds[roundId].snapshotBlockHash = snapshotBlockHash;
         _rounds[roundId].exists = true;
         _rounds[roundId].label = label;
         if (roundId > latestRoundId) {
             latestRoundId = roundId;
         }
 
-        emit RoundCreated(roundId, snapshotHash, snapshotBlock, label);
+        emit RoundCreated(roundId, snapshotHash, snapshotBlock, snapshotBlockHash, label);
     }
 
     function setAllocations(
@@ -209,6 +211,7 @@ contract GsaTtwoDailyClaimVault {
     function roundStatus(uint256 roundId) external view returns (
         bytes32 snapshotHash,
         uint256 snapshotBlock,
+        bytes32 snapshotBlockHash,
         uint256 allocationCount,
         uint256 totalAllocated,
         uint256 funded,
@@ -220,6 +223,7 @@ contract GsaTtwoDailyClaimVault {
         return (
             round.snapshotHash,
             round.snapshotBlock,
+            round.snapshotBlockHash,
             round.allocationCount,
             round.totalAllocated,
             round.funded,
