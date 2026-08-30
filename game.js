@@ -1,5 +1,5 @@
 (() => {
-  window.NMR_BUILD = '20260829-wasd4';
+  window.NMR_BUILD = '20260829-gungator2';
   const canvas = document.querySelector('#game');
   if (!canvas.hasAttribute('tabindex')) canvas.tabIndex = 0;
   const ctx = canvas.getContext('2d');
@@ -7,6 +7,7 @@
   const H = canvas.height;
   const WORLD_W = 2720;
   const WORLD_H = 1840;
+  const GATOR_SCALE = 0.78;
   const params = new URLSearchParams(location.search);
   const debugMode = params.has('selftest') || params.has('debug');
 
@@ -884,7 +885,7 @@
   function fire() {
     const p = game.player;
     const weapon = p.weapon;
-    const nose = p.vehicle ? 27 : 13;
+    const nose = p.vehicle ? 27 : 24;
     addNoise(weapon === 'rocket' ? 2.8 : weapon === 'flame' ? 1.4 : 0.28);
     if (weapon === 'rocket') {
       game.bullets.push({
@@ -1678,6 +1679,7 @@
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(a);
+    ctx.scale(GATOR_SCALE, GATOR_SCALE);
 
     ctx.fillStyle = 'rgba(26,39,53,.32)';
     ctx.beginPath();
@@ -1761,6 +1763,15 @@
       ctx.fill();
       if (i < 3) ctx.fillRect(sx + 3, -1, 3, 2);
     });
+
+    ctx.fillStyle = '#05080d';
+    ctx.fillRect(10, 11, 31, 7);
+    ctx.fillRect(35, 8, 11, 4);
+    ctx.fillRect(13, 17, 8, 11);
+    ctx.fillRect(6, 13, 8, 5);
+    ctx.fillStyle = '#182536';
+    ctx.fillRect(15, 12, 14, 2);
+    ctx.fillRect(40, 9, 6, 2);
 
     ctx.restore();
   }
@@ -2021,6 +2032,7 @@
 
       assert('canvas and world stay phone-friendly', W === 960 && H === 600 && WORLD_W <= 3200 && WORLD_H <= 2200, `${W}x${H} in ${WORLD_W}x${WORLD_H}`);
       assert('Stocky draws with a distinct gator silhouette', typeof drawGator === 'function', 'drawGator available');
+      assert('Stocky sprite is scaled smaller for gameplay readability', GATOR_SCALE < 0.9, `scale ${GATOR_SCALE}`);
       assert('run starts in open street space for visible movement', onRoad(game.player.x, game.player.y) && !blocked(game.player.x + 28, game.player.y, 11) && !blocked(game.player.x - 28, game.player.y, 11) && !blocked(game.player.x, game.player.y + 28, 11) && !blocked(game.player.x, game.player.y - 28, 11), `${game.player.x},${game.player.y}`);
       assert('Bubble City has varied buildings and storefronts', buildings.length >= 30 && stores.length >= 16, `${buildings.length} buildings, ${stores.length} stores`);
       assert('phones and garages exist for side hustles', phones.length >= 3 && garages.length >= 3, `${phones.length} phones, ${garages.length} garages`);
@@ -2299,9 +2311,9 @@
   renderBoard(demoScores);
   reset();
   draw();
-  window.NMR_BOTTOM_REACHED = '20260829-wasd4';
-  document.documentElement.dataset.nmrBuild = '20260829-wasd4';
-  document.documentElement.dataset.nmrBottomReached = '20260829-wasd4';
+  window.NMR_BOTTOM_REACHED = '20260829-gungator2';
+  document.documentElement.dataset.nmrBuild = '20260829-gungator2';
+  document.documentElement.dataset.nmrBottomReached = '20260829-gungator2';
   if (params.has('selftest')) {
     publishSelfTest({
       passed: 0,
