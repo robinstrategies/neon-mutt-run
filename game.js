@@ -1,11 +1,14 @@
 (() => {
-  window.NMR_BUILD = '20260829-gator1';
+  window.NMR_BUILD = '20260829-wasd4';
   const canvas = document.querySelector('#game');
+  if (!canvas.hasAttribute('tabindex')) canvas.tabIndex = 0;
   const ctx = canvas.getContext('2d');
   const W = canvas.width;
   const H = canvas.height;
   const WORLD_W = 2720;
   const WORLD_H = 1840;
+  const params = new URLSearchParams(location.search);
+  const debugMode = params.has('selftest') || params.has('debug');
 
   const palette = [
     ['#c56a65', '#f1a65f'],
@@ -133,6 +136,9 @@
   const phones = [];
   const garages = [];
   const keys = new Set();
+  const movementKeys = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright']);
+  const actionKeys = new Set([' ', 'f', 'e']);
+  const gameKeys = new Set([...movementKeys, ...actionKeys]);
   let game;
   let last = 0;
   let runId = 0;
@@ -140,23 +146,48 @@
   buildCity();
 
   addEventListener('keydown', e => {
-    const key = e.key.toLowerCase();
+    const key = normalizeKey(e);
+    if (!gameKeys.has(key) || isTypingTarget(e.target)) return;
+    e.preventDefault();
+    if (!game?.alive || !ui.start.classList.contains('hidden')) return;
     keys.add(key);
-    if ([' ', 'f', 'e', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) e.preventDefault();
+    if (!e.repeat && movementKeys.has(key)) tapMove(key);
     if (!e.repeat) pressAction(key);
   });
   addEventListener('keyup', e => {
-    const key = e.key.toLowerCase();
+    const key = normalizeKey(e);
+    if (!gameKeys.has(key)) return;
+    e.preventDefault();
     keys.delete(key);
     if (key === 'e' && game?.player) game.player.eLatch = false;
   });
 
   canvas.addEventListener('pointermove', aimFromPointer);
   canvas.addEventListener('pointerdown', e => {
+    focusGame();
     if (!game?.alive || !ui.start.classList.contains('hidden')) return;
     aimFromPointer(e);
     fireFromInput();
   });
+
+  function normalizeKey(e) {
+    if (e.key === ' ' || e.code === 'Space') return ' ';
+    return e.key.toLowerCase();
+  }
+
+  function isTypingTarget(target) {
+    if (!target) return false;
+    const tag = target.tagName;
+    return target.isContentEditable || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+  }
+
+  function focusGame() {
+    try {
+      canvas.focus({ preventScroll: true });
+    } catch {
+      canvas.focus();
+    }
+  }
 
   function mulberry32(seed) {
     return () => {
@@ -342,8 +373,10 @@
 
   function start() {
     reset();
+    keys.clear();
     ui.start.classList.add('hidden');
     ui.over.classList.add('hidden');
+    focusGame();
     last = performance.now();
     requestAnimationFrame(loop);
   }
@@ -442,6 +475,24 @@
     game.camera.y = clamp(p.y - H / 2, 0, WORLD_H - H);
     if (game.health <= 0) end();
     updateHud();
+  }
+
+  function tapMove(key) {
+    const p = game.player;
+    let dx = (key === 'd' || key === 'arrowright' ? 1 : 0) - (key === 'a' || key === 'arrowleft' ? 1 : 0);
+    let dy = (key === 's' || key === 'arrowdown' ? 1 : 0) - (key === 'w' || key === 'arrowup' ? 1 : 0);
+    if (!dx && !dy) return;
+    const l = Math.hypot(dx, dy);
+    dx /= l;
+    dy /= l;
+    if (p.aimLock <= 0.02) p.a = Math.atan2(dy, dx);
+    const turbo = p.turboT > 0 ? 1.34 : 1;
+    const nudge = (p.vehicle ? 17 : 10) * turbo;
+    move(p, dx * nudge, dy * nudge, p.vehicle ? 21 : 11);
+    game.camera.x = clamp(p.x - W / 2, 0, WORLD_W - W);
+    game.camera.y = clamp(p.y - H / 2, 0, WORLD_H - H);
+    updateHud();
+    draw();
   }
 
   function spawnHostile(initial = false, forcedType = null) {
@@ -1176,6 +1227,15 @@
   }
 
   function findStartPoint() {
+    const openStreetStarts = [
+      { x: 1185, y: 705 },
+      { x: 1525, y: 705 },
+      { x: 1185, y: 1018 },
+      { x: 1525, y: 1018 }
+    ];
+    const streetStart = openStreetStarts.find(pt => !blocked(pt.x, pt.y, 28));
+    if (streetStart) return streetStart;
+
     const cx = WORLD_W / 2;
     const cy = WORLD_H / 2;
     const options = stores
@@ -1228,6 +1288,7 @@
 
   function end() {
     game.alive = false;
+    keys.clear();
     const s = score();
     ui.result.textContent = `${Math.floor(game.t)} seconds alive · ${game.kills} knockouts · $${game.cash.toLocaleString()} bubble bucks · ${s.toLocaleString()} points`;
     ui.over.classList.remove('hidden');
@@ -1243,6 +1304,7 @@
     ui.ammo.textContent = game.player.weapon === 'rocket' ? 'RKT' : game.player.weapon === 'flame' ? 'FIRE' : '∞';
     if (ui.cash) ui.cash.textContent = `$${String(game.cash).padStart(4, '0')}`;
     if (ui.mult) ui.mult.textContent = `X${game.mult}`;
+    publishRuntimeState();
   }
 
   function draw() {
@@ -1911,10 +1973,33 @@
     document.documentElement.dataset.nmrSelftest = JSON.stringify(payload);
   }
 
+  function publishRuntimeState() {
+    if (!debugMode || !game) return;
+    document.documentElement.dataset.nmrPlayer = JSON.stringify({
+      alive: game.alive,
+      x: Math.round(game.player.x * 10) / 10,
+      y: Math.round(game.player.y * 10) / 10,
+      t: Math.round(game.t * 10) / 10,
+      keys: [...keys].sort()
+    });
+  }
+
   async function runSelfTest() {
     const results = [];
     const assert = (name, ok, details = '') => results.push({ name, ok: Boolean(ok), details });
     const p0 = () => game.player;
+    const keyCode = key => ({
+      w: 'KeyW',
+      a: 'KeyA',
+      s: 'KeyS',
+      d: 'KeyD',
+      arrowup: 'ArrowUp',
+      arrowdown: 'ArrowDown',
+      arrowleft: 'ArrowLeft',
+      arrowright: 'ArrowRight',
+      ' ': 'Space'
+    }[String(key).toLowerCase()] || String(key));
+    const sendKey = (type, key) => dispatchEvent(new KeyboardEvent(type, { key, code: keyCode(key), bubbles: true, cancelable: true }));
     const openNearPlayer = (preferred = 90) => {
       const p = p0();
       for (const dist of [preferred, 60, 120, 180, 240]) {
@@ -1936,6 +2021,7 @@
 
       assert('canvas and world stay phone-friendly', W === 960 && H === 600 && WORLD_W <= 3200 && WORLD_H <= 2200, `${W}x${H} in ${WORLD_W}x${WORLD_H}`);
       assert('Stocky draws with a distinct gator silhouette', typeof drawGator === 'function', 'drawGator available');
+      assert('run starts in open street space for visible movement', onRoad(game.player.x, game.player.y) && !blocked(game.player.x + 28, game.player.y, 11) && !blocked(game.player.x - 28, game.player.y, 11) && !blocked(game.player.x, game.player.y + 28, 11) && !blocked(game.player.x, game.player.y - 28, 11), `${game.player.x},${game.player.y}`);
       assert('Bubble City has varied buildings and storefronts', buildings.length >= 30 && stores.length >= 16, `${buildings.length} buildings, ${stores.length} stores`);
       assert('phones and garages exist for side hustles', phones.length >= 3 && garages.length >= 3, `${phones.length} phones, ${garages.length} garages`);
       assert('pedestrians visit stores and do not target the player', game.peds.length >= 12 && game.peds.every(ped => ped.target && ped.hp === undefined && ped.shootCd === undefined), `${game.peds.length} peds`);
@@ -1945,6 +2031,29 @@
       const shotCount = game.bullets.length;
       pressAction('f');
       assert('keyboard/touch fire path creates a projectile', game.bullets.length > shotCount, `${shotCount}->${game.bullets.length}`);
+
+      game.player.vehicle = null;
+      game.player.x = 1185;
+      game.player.y = 705;
+      game.player.aimLock = 0;
+      keys.clear();
+      const beforeD = game.player.x;
+      sendKey('keydown', 'd');
+      update(0.12);
+      sendKey('keyup', 'd');
+      assert('WASD movement moves Stocky while held', game.player.x > beforeD + 18 && !keys.has('d'), `${beforeD.toFixed(1)}->${game.player.x.toFixed(1)}`);
+
+      const beforeW = game.player.y;
+      sendKey('keydown', 'w');
+      update(0.12);
+      sendKey('keyup', 'w');
+      assert('W key moves Stocky upward', game.player.y < beforeW - 18 && !keys.has('w'), `${beforeW.toFixed(1)}->${game.player.y.toFixed(1)}`);
+
+      const beforeArrow = game.player.x;
+      sendKey('keydown', 'ArrowLeft');
+      update(0.12);
+      sendKey('keyup', 'ArrowLeft');
+      assert('arrow keys still move Stocky', game.player.x < beforeArrow - 18 && !keys.has('arrowleft'), `${beforeArrow.toFixed(1)}->${game.player.x.toFixed(1)}`);
 
       const targetPoint = openNearPlayer(70);
       const target = {
@@ -2169,8 +2278,10 @@
     const key = button.dataset.key;
     const down = e => {
       e.preventDefault();
+      focusGame();
       keys.add(key);
       button.classList.add('is-held');
+      if (movementKeys.has(key)) tapMove(key);
       pressAction(key);
     };
     const up = e => {
@@ -2188,10 +2299,10 @@
   renderBoard(demoScores);
   reset();
   draw();
-  window.NMR_BOTTOM_REACHED = '20260829-gator1';
-  document.documentElement.dataset.nmrBuild = '20260829-gator1';
-  document.documentElement.dataset.nmrBottomReached = '20260829-gator1';
-  if (new URLSearchParams(location.search).has('selftest')) {
+  window.NMR_BOTTOM_REACHED = '20260829-wasd4';
+  document.documentElement.dataset.nmrBuild = '20260829-wasd4';
+  document.documentElement.dataset.nmrBottomReached = '20260829-wasd4';
+  if (params.has('selftest')) {
     publishSelfTest({
       passed: 0,
       total: 1,
