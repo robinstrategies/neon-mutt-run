@@ -1,5 +1,5 @@
 (() => {
-  window.NMR_BUILD = '20260829-gungator2';
+  window.NMR_BUILD = '20260829-points1';
   const canvas = document.querySelector('#game');
   if (!canvas.hasAttribute('tabindex')) canvas.tabIndex = 0;
   const ctx = canvas.getContext('2d');
@@ -121,7 +121,6 @@
     score: $('#score'),
     heat: $('#heat'),
     ammo: $('#ammo'),
-    cash: $('#cash'),
     mult: $('#mult'),
     start: $('#startScreen'),
     over: $('#gameOver'),
@@ -331,7 +330,7 @@
       alive: true,
       t: 0,
       kills: 0,
-      cash: 0,
+      bonus: 0,
       mult: 1,
       noise: 0,
       armor: 0,
@@ -1027,7 +1026,7 @@
     e.counted = true;
     game.kills++;
     const bounty = e.type === 'bossGun' ? 1600 : e.type === 'bossBruiser' ? 1800 : e.type === 'badge' ? 450 : e.type === 'gangShooter' ? 380 : 250;
-    game.cash += Math.floor(bounty * game.mult);
+    game.bonus += Math.floor(bounty * game.mult);
     addNoise(e.type?.startsWith('boss') ? 18 : 6);
     noteMissionKill(e);
   }
@@ -1042,11 +1041,11 @@
     }
     if (c.kind === 'boss') {
       game.kills++;
-      game.cash += Math.floor(2200 * game.mult);
+      game.bonus += Math.floor(2200 * game.mult);
       addNoise(22);
       spawnDrop(c.x, c.y, true);
     } else if (c.kind === 'traffic') {
-      game.cash += Math.floor(75 * game.mult);
+      game.bonus += Math.floor(75 * game.mult);
       addNoise(9);
       noteMissionCar(c);
       spawnDrop(c.x, c.y);
@@ -1143,7 +1142,6 @@
     if (!garage) return false;
     p.vehicle.life = Math.min(p.vehicle.maxLife, p.vehicle.life + 55);
     game.noise = Math.max(0, game.noise - 55);
-    game.cash = Math.max(0, game.cash - 120);
     flash('BUBBLE WASH: RIDE FIXED, HEAT COOLED');
     spark(p.x, p.y, '#35d8d5', 18);
     return true;
@@ -1200,10 +1198,10 @@
     const m = game.mission;
     if (!m) return;
     const paid = Math.floor(m.reward * game.mult);
-    game.cash += paid;
+    game.bonus += paid;
     game.mult = Math.min(9, game.mult + 1);
     game.noise = Math.max(0, game.noise - 25);
-    flash(`HUSTLE PAID $${paid} - MULTIPLIER X${game.mult}`);
+    flash(`HUSTLE CLEARED +${paid} PTS - MULTIPLIER X${game.mult}`);
     spark(game.player.x, game.player.y, '#d9ff5c', 28);
     game.mission = null;
   }
@@ -1284,14 +1282,14 @@
   }
 
   function score() {
-    return Math.floor(game.t * 12) + game.kills * 250 + game.cash;
+    return Math.floor(game.t * 12) + game.kills * 250 + game.bonus;
   }
 
   function end() {
     game.alive = false;
     keys.clear();
     const s = score();
-    ui.result.textContent = `${Math.floor(game.t)} seconds alive · ${game.kills} knockouts · $${game.cash.toLocaleString()} bubble bucks · ${s.toLocaleString()} points`;
+    ui.result.textContent = `${Math.floor(game.t)} seconds alive · ${game.kills} knockouts · ${s.toLocaleString()} points`;
     ui.over.classList.remove('hidden');
   }
 
@@ -1303,7 +1301,6 @@
     ui.score.textContent = String(score()).padStart(5, '0');
     ui.heat.textContent = String(heatLevel()).padStart(2, '0');
     ui.ammo.textContent = game.player.weapon === 'rocket' ? 'RKT' : game.player.weapon === 'flame' ? 'FIRE' : '∞';
-    if (ui.cash) ui.cash.textContent = `$${String(game.cash).padStart(4, '0')}`;
     if (ui.mult) ui.mult.textContent = `X${game.mult}`;
     publishRuntimeState();
   }
@@ -2089,7 +2086,7 @@
       game.enemies.push(target);
       game.bullets.push({ kind: 'spark', x: target.x, y: target.y, vx: 0, vy: 0, life: 1, damage: 3, radius: 4 });
       updateBullets(0.016);
-      assert('player projectiles can defeat enemies and award money', game.kills === killsBefore + 1 && target.counted && game.cash > 0, `kills ${killsBefore}->${game.kills}`);
+      assert('player projectiles can defeat enemies and award score bonus', game.kills === killsBefore + 1 && target.counted && game.bonus > 0, `kills ${killsBefore}->${game.kills}`);
 
       const shooterPoint = openNearPlayer(130);
       const enemyShotCount = game.enemyBullets.length;
@@ -2148,9 +2145,9 @@
       assert('frenzy pickup starts a timed sweep challenge', game.mission?.type === 'sweep' && game.player.weapon === 'flame', game.mission?.text || '');
 
       game.mission = { type: 'sweep', remaining: 1, total: 1, timer: 10, reward: 120, text: 'QA sweep' };
-      const cashBeforeSweep = game.cash;
+      const bonusBeforeSweep = game.bonus;
       awardEnemy({ type: 'gang', counted: false });
-      assert('sweep side hustle completes from enemy knockouts', !game.mission && game.cash > cashBeforeSweep, `$${cashBeforeSweep}->${game.cash}`);
+      assert('sweep side hustle completes from enemy knockouts', !game.mission && game.bonus > bonusBeforeSweep, `${bonusBeforeSweep}->${game.bonus}`);
 
       game.mission = { type: 'wreck', remaining: 1, total: 1, timer: 10, reward: 120, text: 'QA wreck' };
       const traffic = { kind: 'traffic', x: game.player.x + 36, y: game.player.y, life: 1, maxLife: 90, radius: 25 };
@@ -2202,10 +2199,13 @@
 
       game.t = 12.4;
       game.kills = 2;
-      game.cash = 345;
+      game.bonus = 345;
       game.health = 0;
       end();
       assert('game-over overlay summarizes a finished run', !ui.over.classList.contains('hidden') && ui.result.textContent.includes('seconds alive'), ui.result.textContent);
+      const retiredCurrencyCopy = `${String.fromCharCode(98,117,98,98,108,101)} ${String.fromCharCode(98,117,99,107,115)}`;
+      const retiredHudLabel = String.fromCharCode(66,85,67,75,83);
+      assert('retired currency copy is absent from player-facing UI', !document.body.innerText.toLowerCase().includes(retiredCurrencyCopy) && !document.body.innerText.includes(retiredHudLabel), document.body.innerText);
 
       const boardSize = demoScores.length;
       const c = window.NEON_MUTT_SUPABASE || {};
@@ -2241,7 +2241,7 @@
 
   function renderBoard(rows, remote = false) {
     ui.board.innerHTML = rows.slice(0, 5).map((s, i) => `<li><span class="rank">${String(i + 1).padStart(2, '0')}</span><b>${safe(s.name || 'RASCAL')}</b><em>${Number(s.score).toLocaleString()}</em></li>`).join('');
-    ui.note.textContent = remote ? 'Global scores · point total blends time alive, knockouts, and bubble bucks.' : 'Local demo scores are shown until Supabase is connected.';
+    ui.note.textContent = remote ? 'Global scores · point total blends time alive, knockouts, and bonus points.' : 'Local demo scores are shown until Supabase is connected.';
   }
 
   function safe(s) {
@@ -2311,9 +2311,9 @@
   renderBoard(demoScores);
   reset();
   draw();
-  window.NMR_BOTTOM_REACHED = '20260829-gungator2';
-  document.documentElement.dataset.nmrBuild = '20260829-gungator2';
-  document.documentElement.dataset.nmrBottomReached = '20260829-gungator2';
+  window.NMR_BOTTOM_REACHED = '20260829-points1';
+  document.documentElement.dataset.nmrBuild = '20260829-points1';
+  document.documentElement.dataset.nmrBottomReached = '20260829-points1';
   if (params.has('selftest')) {
     publishSelfTest({
       passed: 0,
