@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Create and fund GSA to TTWO daily claim rounds from Rabby wallet." />
+    <title>GSA Claim Round Admin</title>
+    <link rel="stylesheet" href="airdrop.css?v=20260830-claims1" />
+  </head>
+  <body data-claim-page="admin">
+    <main class="airdrop-app claim-admin-app">
+      <section class="panel hero-panel" aria-label="GSA claim round admin">
+        <p class="eyebrow">OWNER TOOL · DAILY TTWO CLAIMS</p>
+        <h1>Open A Claim Round</h1>
+        <p class="lede">Deploy the vault once, snapshot GSA holders over 100k, load their TTWO allocations, fund the vault, then open claims.</p>
+
+        <div class="button-row">
+          <button id="connectButton" class="primary">Connect Rabby Wallet</button>
+          <button id="deployVaultButton" class="secondary">Deploy Claim Vault</button>
+          <button id="snapshotButton" class="secondary">Snapshot</button>
+        </div>
+
+        <p id="statusLine" class="status-line" role="status">Wallet not connected.</p>
+      </section>
+
+      <section class="panel controls-panel" aria-label="Claim round settings">
+        <div class="field wide-field">
+          <label for="vaultAddress">Claim vault contract</label>
+          <input id="vaultAddress" inputmode="text" placeholder="Deploy or paste 0x..." />
+        </div>
+
+        <div class="field compact">
+          <label for="roundId">Round ID</label>
+          <input id="roundId" inputmode="numeric" />
+        </div>
+
+        <div class="field compact">
+          <label for="minBalance">Minimum GSA</label>
+          <input id="minBalance" inputmode="decimal" value="100000" />
+        </div>
+
+        <div class="field compact">
+          <label for="chunkSize">Chunk size</label>
+          <input id="chunkSize" inputmode="numeric" value="70" />
+        </div>
+
+        <label class="check">
+          <input id="excludeContracts" type="checkbox" checked />
+          <span>Exclude contracts</span>
+        </label>
+
+        <label class="check">
+          <input id="excludeSender" type="checkbox" checked />
+          <span>Exclude owner wallet</span>
+        </label>
+
+        <button id="saveVaultButton" class="ghost">Save Vault</button>
+      </section>
+
+      <section class="stats-grid" aria-label="Claim round summary">
+        <article>
+          <small>Owner wallet</small>
+          <strong id="walletStat">—</strong>
+        </article>
+        <article>
+          <small>Wallet TTWO balance</small>
+          <strong id="ttwoStat">—</strong>
+        </article>
+        <article>
+          <small>Eligible holders</small>
+          <strong id="holdersStat">—</strong>
+        </article>
+        <article>
+          <small>Snapshot block</small>
+          <strong id="blockStat">—</strong>
+        </article>
+      </section>
+
+      <section class="panel send-panel" aria-label="Publish claim round">
+        <div class="send-copy">
+          <p class="eyebrow">AIRDROP BUTTON</p>
+          <h2>Create, fund, open.</h2>
+          <p>This sends owner-only contract transactions from Rabby. Holders claim their own TTWO after the round opens.</p>
+          <p class="legal-note">Only use this where stock-token distribution is allowed. Some TTWO transfers or claims may fail if the token contract blocks a wallet.</p>
+          <div id="claimLinkBox" class="claim-link-box hidden">
+            <label for="claimLink">Holder claim link</label>
+            <input id="claimLink" readonly />
+            <button id="copyClaimLink" class="ghost">Copy Link</button>
+          </div>
+        </div>
+
+        <div class="send-controls">
+          <label class="check danger-check">
+            <input id="realSendConfirm" type="checkbox" />
+            <span>I understand this deploys/funds a real TTWO claim round.</span>
+          </label>
+          <div class="button-row">
+            <button id="publishRoundButton" class="danger" disabled>Create / Fund / Open Round</button>
+            <button id="stopButton" class="ghost" disabled>Stop</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel table-panel" aria-label="Claim allocations table">
+        <div class="table-top">
+          <div>
+            <p class="eyebrow">SNAPSHOT OUTPUT</p>
+            <h2>Claim allocations</h2>
+          </div>
+          <button id="downloadCsv" class="ghost" disabled>Download CSV</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Address</th>
+                <th>GSA</th>
+                <th>Share</th>
+                <th>TTWO Claim</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="holderRows">
+              <tr>
+                <td colspan="6" class="empty">Connect wallet, then press Snapshot.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="claim-config.js?v=20260830-claims1"></script>
+    <script src="claims.js?v=20260830-claims1"></script>
+  </body>
+</html>

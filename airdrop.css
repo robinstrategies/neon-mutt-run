@@ -275,6 +275,14 @@ input[type="checkbox"] {
   font: 600 13px/1.55 "Space Grotesk", sans-serif;
 }
 
+.wide-field {
+  flex: 2 1 360px;
+}
+
+.wide-field input {
+  width: 100%;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -305,6 +313,11 @@ input[type="checkbox"] {
 .send-copy p:not(.eyebrow) {
   color: var(--muted);
   margin: 12px 0 0;
+}
+
+.legal-note {
+  color: #ffd6df !important;
+  font-size: .95rem;
 }
 
 .send-controls {
@@ -388,6 +401,40 @@ td.empty {
 .pill.error { color: white; background: var(--danger); }
 .pill.active { color: var(--ink); background: var(--cyan); }
 
+.claim-link-box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid rgba(36, 244, 255, .26);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, .24);
+}
+
+.claim-link-box label {
+  grid-column: 1 / -1;
+  color: var(--cyan);
+  font: 700 12px/1.4 "DM Mono", monospace;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.claim-link-box input {
+  width: 100%;
+}
+
+.hidden { display: none !important; }
+
+.claim-hero {
+  min-height: 58vh;
+}
+
+.claim-help {
+  align-items: center;
+}
+
 @media (max-width: 880px) {
   body { background-attachment: scroll; }
 
@@ -398,6 +445,10 @@ td.empty {
   }
 
   .send-panel { gap: 18px; }
+
+  .claim-link-box {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {

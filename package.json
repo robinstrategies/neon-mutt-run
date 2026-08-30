@@ -5,9 +5,16 @@
   "type": "module",
   "scripts": {
     "snapshot:gsa": "node tools/robinhood-holder-snapshot.mjs",
-    "airdrop:ttwo": "node tools/ttwo-airdrop.mjs"
+    "airdrop:ttwo": "node tools/ttwo-airdrop.mjs",
+    "compile:claim-vault": "node tools/compile-claim-vault.mjs"
   },
   "dependencies": {
     "ethers": "^6.17.0"
+  },
+  "devDependencies": {
+    "solc": "^0.8.36"
+  },
+  "overrides": {
+    "tmp": "^0.2.6"
   }
 }

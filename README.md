@@ -152,6 +152,25 @@ Open `/airdrop.html` on the deployed site or local static server.
 
 The browser page never asks for a private key. It uses Rabby wallet approvals for TTWO transfers. Large airdrops may require one wallet prompt per recipient.
 
+## Claimable TTWO rounds
+
+The claim flow uses a small vault contract so holders can claim their own TTWO:
+
+- Owner page: `/claims-admin.html`
+- Holder page: `/claim.html`
+- Contract source: `contracts/GsaTtwoDailyClaimVault.sol`
+
+Daily owner flow:
+
+1. Claim fees on long.xyz so TTWO lands in the owner wallet.
+2. Open `/claims-admin.html` and connect Rabby.
+3. Deploy the claim vault once, or paste the existing vault address.
+4. Press **Snapshot**.
+5. Press **Create / Fund / Open Round**.
+6. Share the generated `/claim.html?contract=...&round=...` link.
+
+The holder flow is just connect Rabby, check claim, then claim TTWO. The vault prevents double-claims. The page excludes wallets under `100000` GSA by default.
+
 ## Publish free/cheap
 
 Push this repository to a public GitHub repository. GitHub Pages, Cloudflare Pages, and Netlify can all host the static files inexpensively. Point a custom domain at the host when you have one.

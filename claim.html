@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Claim your GSA holder TTWO stock-token allocation." />
+    <title>Claim TTWO | Grand Stock Auto</title>
+    <link rel="stylesheet" href="airdrop.css?v=20260830-claims1" />
+  </head>
+  <body data-claim-page="holder">
+    <main class="airdrop-app claim-app">
+      <section class="panel hero-panel claim-hero" aria-label="Claim TTWO">
+        <p class="eyebrow">GRAND STOCK AUTO · HOLDER CLAIM</p>
+        <h1>Claim TTWO</h1>
+        <p class="lede">Connect Rabby, check your daily GSA snapshot allocation, then claim your TTWO stock-token share from the vault.</p>
+
+        <div class="button-row">
+          <button id="connectButton" class="primary">Connect Rabby Wallet</button>
+          <button id="checkClaimButton" class="secondary">Check Claim</button>
+          <button id="claimButton" class="danger" disabled>Claim TTWO</button>
+        </div>
+
+        <p id="statusLine" class="status-line" role="status">Wallet not connected.</p>
+      </section>
+
+      <section class="panel controls-panel" aria-label="Claim settings">
+        <div class="field wide-field">
+          <label for="vaultAddress">Claim vault contract</label>
+          <input id="vaultAddress" inputmode="text" placeholder="0x..." />
+        </div>
+        <div class="field compact">
+          <label for="roundId">Round ID</label>
+          <input id="roundId" inputmode="numeric" />
+        </div>
+      </section>
+
+      <section class="stats-grid claim-stats" aria-label="Claim summary">
+        <article>
+          <small>Your wallet</small>
+          <strong id="walletStat">—</strong>
+        </article>
+        <article>
+          <small>Round status</small>
+          <strong id="roundStat">—</strong>
+        </article>
+        <article>
+          <small>Your TTWO claim</small>
+          <strong id="claimAmountStat">—</strong>
+        </article>
+        <article>
+          <small>Round funded</small>
+          <strong id="fundedStat">—</strong>
+        </article>
+      </section>
+
+      <section class="panel send-panel claim-help" aria-label="Claim help">
+        <div class="send-copy">
+          <p class="eyebrow">HOW THIS WORKS</p>
+          <h2>One snapshot. One claim.</h2>
+          <p>If your wallet held at least 100k GSA in the daily snapshot, the vault will show your TTWO amount. After claiming, that round is marked claimed for your wallet.</p>
+          <p class="legal-note">Claims can fail if the TTWO stock-token contract does not allow a specific wallet to receive it.</p>
+        </div>
+        <div class="mini-note">
+          This page never asks for private keys. Rabby shows the transaction before anything is sent.
+        </div>
+      </section>
+    </main>
+
+    <script src="claim-config.js?v=20260830-claims1"></script>
+    <script src="claims.js?v=20260830-claims1"></script>
+  </body>
+</html>
