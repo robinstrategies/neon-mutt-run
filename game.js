@@ -1,9 +1,10 @@
 (() => {
-  window.NMR_BUILD = '20260829-supabase6';
+  window.NMR_BUILD = '20260830-social-security1';
   window.GSA_BOARD = window.GSA_BOARD || {
     "anonKey": "sb_publishable_oSLncZRM0-fSmWQK-islCA_-3fl5MiN",
     "url": "https://ztngfvexnbuzwlpmnhrn.supabase.co"
   };
+  const SUPABASE_SCOREBOARD_HOST = 'ztngfvexnbuzwlpmnhrn.supabase.co';
   const canvas = document.querySelector('#game');
   if (!canvas.hasAttribute('tabindex')) canvas.tabIndex = 0;
   const ctx = canvas.getContext('2d');
@@ -2195,7 +2196,9 @@
 
       const prevBoard = ui.board.innerHTML;
       renderBoard([{ name: '<RUGGED>', score: 1234 }]);
-      assert('scoreboard escapes submitted names', !ui.board.innerHTML.includes('<RUGGED>') && ui.board.textContent.includes('<RUGGED>'), ui.board.innerHTML);
+      assert('scoreboard escapes submitted names', !ui.board.innerHTML.includes('<RUGGED>') && ui.board.textContent.includes('RUGGED'), ui.board.innerHTML);
+      renderBoard([{ name: '<img src=x onerror=alert(1)>WAYTOOLONG', score: 'nope' }]);
+      assert('scoreboard clamps hostile remote rows', !ui.board.innerHTML.includes('onerror') && !ui.board.textContent.includes('NaN') && ui.board.textContent.includes('0'), ui.board.innerHTML);
       const manyScores = Array.from({ length: 1000 }, (_, i) => ({ name: `BOT${i}`, score: 1000 - i }));
       renderBoard(manyScores);
       assert('scoreboard renders a bounded top five from 1000 rows', ui.board.querySelectorAll('li').length === 5, `${ui.board.querySelectorAll('li').length} rows`);
@@ -2246,26 +2249,58 @@
 
   function renderBoard(rows, remote = false) {
     if (ui.boardTitle) ui.boardTitle.textContent = remote ? 'GLOBAL SCOREBOARD' : 'DEMO SCOREBOARD';
-    ui.board.innerHTML = rows.slice(0, 5).map((s, i) => `<li><span class="rank">${String(i + 1).padStart(2, '0')}</span><b>${safe(s.name || 'RASCAL')}</b><em>${Number(s.score).toLocaleString()}</em></li>`).join('');
+    ui.board.innerHTML = rows.slice(0, 5).map((s, i) => {
+      const name = cleanScoreName(s.name || 'RASCAL');
+      const points = safeScore(s.score);
+      return `<li><span class="rank">${String(i + 1).padStart(2, '0')}</span><b>${safe(name)}</b><em>${points.toLocaleString()}</em></li>`;
+    }).join('');
     ui.note.textContent = remote ? 'Global scores are live.' : 'Demo scores for now.';
+  }
+
+  function cleanScoreName(value) {
+    return String(value || 'RASCAL')
+      .toUpperCase()
+      .replace(/[^\w !?.-]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 14) || 'RASCAL';
+  }
+
+  function safeScore(value) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 0) return 0;
+    return Math.min(Math.floor(parsed), 999999999);
   }
 
   function safe(s) {
     return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  function supabaseHeaders(contentType = false) {
+  function boardConfig() {
     const c = window.GSA_BOARD || window.NEON_MUTT_SUPABASE || {};
-    const key = String(c.anonKey || '');
-    const headers = { apikey: key };
-    if (key && !key.startsWith('sb_publishable_')) headers.Authorization = `Bearer ${key}`;
+    const key = String(c.anonKey || '').trim();
+    const rawUrl = String(c.url || '').trim().replace(/\/+$/g, '');
+    if (!rawUrl || !key) return null;
+    if (!key.startsWith('sb_publishable_')) return null;
+    try {
+      const parsed = new URL(rawUrl);
+      if (parsed.protocol !== 'https:' || parsed.hostname !== SUPABASE_SCOREBOARD_HOST) return null;
+      return { url: parsed.origin, key };
+    } catch {
+      return null;
+    }
+  }
+
+  function supabaseHeaders(contentType = false) {
+    const c = boardConfig();
+    const headers = c ? { apikey: c.key } : {};
     if (contentType) headers['Content-Type'] = 'application/json';
     return headers;
   }
 
   async function leaderboard() {
-    const c = window.GSA_BOARD || window.NEON_MUTT_SUPABASE || {};
-    if (!c.url || !c.anonKey) {
+    const c = boardConfig();
+    if (!c) {
       renderBoard(demoScores);
       return;
     }
@@ -2281,10 +2316,10 @@
 
   async function submit() {
     if (!game) return;
-    const name = (ui.name.value.trim() || 'RASCAL').toUpperCase();
-    const entry = { name, score: score(), kills: game.kills, survival_seconds: Math.floor(game.t) };
-    const c = window.GSA_BOARD || window.NEON_MUTT_SUPABASE || {};
-    if (c.url && c.anonKey) {
+    const name = cleanScoreName(ui.name.value);
+    const entry = { name, score: safeScore(score()), kills: safeScore(game.kills), survival_seconds: safeScore(Math.floor(game.t)) };
+    const c = boardConfig();
+    if (c) {
       try {
         await fetch(`${c.url}/rest/v1/scores`, { method: 'POST', headers: { ...supabaseHeaders(true), Prefer: 'return=minimal' }, body: JSON.stringify(entry) });
       } catch {}
@@ -2330,9 +2365,9 @@
   leaderboard();
   reset();
   draw();
-  window.NMR_BOTTOM_REACHED = '20260829-supabase6';
-  document.documentElement.dataset.nmrBuild = '20260829-supabase6';
-  document.documentElement.dataset.nmrBottomReached = '20260829-supabase6';
+  window.NMR_BOTTOM_REACHED = '20260830-social-security1';
+  document.documentElement.dataset.nmrBuild = '20260830-social-security1';
+  document.documentElement.dataset.nmrBottomReached = '20260830-social-security1';
   if (params.has('selftest')) {
     publishSelfTest({
       passed: 0,

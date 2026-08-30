@@ -135,9 +135,9 @@
 
     if (window.rabby?.ethereum) return window.rabby.ethereum;
     if (Array.isArray(window.ethereum?.providers)) {
-      return window.ethereum.providers.find((provider) => provider.isRabby) || window.ethereum.providers[0];
+      return window.ethereum.providers.find((provider) => provider.isRabby) || null;
     }
-    return window.ethereum || null;
+    return window.ethereum?.isRabby ? window.ethereum : null;
   }
 
   function isMockWallet() {
@@ -172,7 +172,7 @@
     let mockLatestOpenRoundId = 0n;
 
     if (state.page === "holder") {
-      const roundId = BigInt(params.get("round") || window.GSA_CLAIMS_CONFIG?.latestRoundId || getTodayRoundId());
+      const roundId = BigInt(normalizeRoundIdSoft(params.get("round")) || normalizeRoundIdSoft(window.GSA_CLAIMS_CONFIG?.latestRoundId) || getTodayRoundId());
       mockLatestOpenRoundId = roundId;
       const holders = Array.from(mockHolders.entries()).map(([address, gsaRaw]) => ({ address, gsaRaw }));
       const totalGsaRaw = holders.reduce((sum, holder) => sum + holder.gsaRaw, 0n);
@@ -1009,10 +1009,22 @@
 
   function getInitialRoundId() {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("round")) return params.get("round");
-    if (window.GSA_CLAIMS_CONFIG?.latestRoundId) return window.GSA_CLAIMS_CONFIG.latestRoundId;
+    const fromUrl = normalizeRoundIdSoft(params.get("round"));
+    if (fromUrl) return fromUrl;
+    const fromConfig = normalizeRoundIdSoft(window.GSA_CLAIMS_CONFIG?.latestRoundId);
+    if (fromConfig) return fromConfig;
     if (state.page === "holder") return "";
     return getTodayRoundId();
+  }
+
+  function normalizeRoundIdSoft(value) {
+    const text = String(value || "").trim();
+    if (!/^\d+$/.test(text)) return "";
+    try {
+      return BigInt(text) > 0n ? text : "";
+    } catch {
+      return "";
+    }
   }
 
   function getTodayRoundId() {
@@ -1037,7 +1049,7 @@
   function hasClaimConfig() {
     const hasVault = Boolean(normalizeAddressSoft($("#vaultAddress")?.value));
     if (state.page === "holder") return hasVault;
-    return Boolean(hasVault && $("#roundId")?.value.trim());
+    return Boolean(hasVault && normalizeRoundIdSoft($("#roundId")?.value));
   }
 
   function updateHolderAvailability() {
@@ -1079,7 +1091,7 @@
     const box = $("#claimLinkBox");
     if (!box) return;
     const address = normalizeAddressSoft($("#vaultAddress").value);
-    const roundId = $("#roundId").value.trim();
+    const roundId = normalizeRoundIdSoft($("#roundId").value);
     if (!address || !roundId) {
       box.classList.add("hidden");
       return;
@@ -1137,6 +1149,7 @@
     button.disabled = !(
       state.snapshot?.rows?.length &&
       normalizeAddressSoft($("#vaultAddress").value) &&
+      normalizeRoundIdSoft($("#roundId").value) &&
       $("#realSendConfirm").checked &&
       !state.busy
     );

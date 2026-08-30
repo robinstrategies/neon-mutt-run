@@ -3,16 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Grand Stock Auto holder snapshot and TTWO stock-token airdrop planner for Rabby wallet." />
-    <title>GSA / TTWO Airdrop Tool</title>
-    <link rel="stylesheet" href="airdrop.css?v=20260830-airdrop1" />
+    <meta name="description" content="Grand Stock Auto holder snapshot planner for the TTWO claim-vault flow." />
+    <title>GSA / TTWO Snapshot Planner</title>
+    <link rel="stylesheet" href="airdrop.css?v=20260830-snapshot-only1" />
   </head>
   <body>
     <main class="airdrop-app">
       <section class="panel hero-panel" aria-label="GSA TTWO airdrop tool">
         <p class="eyebrow">GRAND STOCK AUTO · ROBINHOOD CHAIN</p>
-        <h1>GSA → TTWO Airdrop Tool</h1>
-        <p class="lede">Connect Rabby, snapshot every GSA holder above 100k, then split the TTWO stock-token balance in your wallet pro-rata.</p>
+        <h1>GSA → TTWO Snapshot Planner</h1>
+        <p class="lede">Connect Rabby and preview every GSA holder above 100k before opening a daily TTWO claim-vault round.</p>
 
         <div class="quick-grid" aria-label="Contract details">
           <div>
@@ -77,29 +77,16 @@
         </article>
       </section>
 
-      <section class="panel send-panel" aria-label="Send controls">
+      <section class="panel send-panel" aria-label="Claim vault handoff">
         <div class="send-copy">
-          <p class="eyebrow">SEND MODE</p>
-          <h2>Review first. Send second.</h2>
-          <p>Rabby will ask you to approve transfers. If there are lots of holders, expect lots of wallet prompts.</p>
+          <p class="eyebrow">CLAIM VAULT ONLY</p>
+          <h2>Snapshot here. Fund claims there.</h2>
+          <p>Direct mass transfers are disabled. Use the daily claim vault so holders claim their own TTWO allocation.</p>
         </div>
 
         <div class="send-controls">
-          <div class="field compact">
-            <label for="startRank">Start rank</label>
-            <input id="startRank" inputmode="numeric" value="1" />
-          </div>
-          <div class="field compact">
-            <label for="maxTransfers">Max transfers</label>
-            <input id="maxTransfers" inputmode="numeric" placeholder="All" />
-          </div>
-          <label class="check danger-check">
-            <input id="realSendConfirm" type="checkbox" />
-            <span>I understand this sends real TTWO stock-tokens.</span>
-          </label>
           <div class="button-row">
-            <button id="sendButton" class="danger" disabled>Send TTWO Airdrop</button>
-            <button id="stopButton" class="ghost" disabled>Stop</button>
+            <a class="primary" href="claims-admin.html">Open Claim Vault Admin</a>
           </div>
         </div>
       </section>
@@ -135,7 +122,7 @@
       </section>
     </main>
 
-    <script src="security-guard.js?v=20260830-1"></script>
-    <script src="airdrop.js?v=20260830-airdrop1"></script>
+    <script src="security-guard.js?v=20260830-2"></script>
+    <script src="airdrop.js?v=20260830-snapshot-only1"></script>
   </body>
 </html>

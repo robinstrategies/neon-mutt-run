@@ -24,24 +24,17 @@
     account: "",
     snapshot: null,
     csvUrl: "",
-    sending: false,
-    stopRequested: false,
     announcedProviders: [],
   };
 
   const selectors = {
     connectButton: "#connectButton",
     snapshotButton: "#snapshotButton",
-    sendButton: "#sendButton",
-    stopButton: "#stopButton",
     downloadCsv: "#downloadCsv",
     statusLine: "#statusLine",
     minBalance: "#minBalance",
     excludeContracts: "#excludeContracts",
     excludeSender: "#excludeSender",
-    realSendConfirm: "#realSendConfirm",
-    startRank: "#startRank",
-    maxTransfers: "#maxTransfers",
     walletStat: "#walletStat",
     ttwoStat: "#ttwoStat",
     holdersStat: "#holdersStat",
@@ -64,13 +57,7 @@
   function bindEvents() {
     $(selectors.connectButton).addEventListener("click", () => connectWallet().catch(handleError));
     $(selectors.snapshotButton).addEventListener("click", () => runSnapshot().catch(handleError));
-    $(selectors.sendButton).addEventListener("click", () => sendAirdrop().catch(handleError));
-    $(selectors.stopButton).addEventListener("click", () => {
-      state.stopRequested = true;
-      setStatus("work", "Stopping after the current wallet prompt finishes.");
-    });
     $(selectors.downloadCsv).addEventListener("click", downloadCsv);
-    $(selectors.realSendConfirm).addEventListener("change", updateSendAvailability);
     $(selectors.minBalance).addEventListener("change", () => {
       if (state.snapshot) {
         setStatus("work", "Minimum changed. Press Snapshot again to rebuild the table.");
@@ -101,10 +88,10 @@
     if (window.rabby?.ethereum) return window.rabby.ethereum;
 
     if (Array.isArray(window.ethereum?.providers)) {
-      return window.ethereum.providers.find((provider) => provider.isRabby) || window.ethereum.providers[0];
+      return window.ethereum.providers.find((provider) => provider.isRabby) || null;
     }
 
-    return window.ethereum || null;
+    return window.ethereum?.isRabby ? window.ethereum : null;
   }
 
   function isMockWallet() {
@@ -163,10 +150,6 @@
           return "0x" + "0".repeat(64);
         }
         if (method === "eth_getCode") return "0x";
-        if (method === "eth_sendTransaction") {
-          const suffix = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(16).padStart(16, "0");
-          return `0x${"2".repeat(48)}${suffix}`;
-        }
         throw new Error(`Mock wallet does not support ${method}`);
       },
     };
@@ -280,7 +263,6 @@
         ttwo: `${formatUnits(ttwoBalanceRaw, CONFIG.ttwoDecimals, 6)} TTWO`,
       });
       renderRows(rows);
-      updateSendAvailability();
 
       setStatus(
         rows.length ? "good" : "bad",
@@ -396,75 +378,6 @@
     return rows;
   }
 
-  async function sendAirdrop() {
-    if (!state.snapshot?.rows?.length) throw new Error("Run Snapshot first.");
-    if (!state.account) await connectWallet();
-    if (!$(selectors.realSendConfirm).checked) {
-      throw new Error("Check the real-send confirmation box first.");
-    }
-    if (state.snapshot.ttwoBalanceRaw <= 0n) {
-      throw new Error("Connected wallet has 0 TTWO stock-tokens.");
-    }
-
-    await ensureRobinhoodChain();
-    state.sending = true;
-    state.stopRequested = false;
-    setBusy(true, { sending: true });
-
-    const startRank = parsePositiveInt($(selectors.startRank).value || "1", "Start rank");
-    const maxTransfersValue = $(selectors.maxTransfers).value.trim();
-    const maxTransfers = maxTransfersValue ? parsePositiveInt(maxTransfersValue, "Max transfers") : Infinity;
-    const rows = state.snapshot.rows
-      .filter((row) => row.rank >= startRank)
-      .filter((row) => row.ttwoRaw > 0n)
-      .filter((row) => row.status !== "sent")
-      .slice(0, maxTransfers);
-
-    if (!rows.length) {
-      setBusy(false);
-      throw new Error("No unsent rows selected to send.");
-    }
-
-    try {
-      for (let index = 0; index < rows.length; index += 1) {
-        if (state.stopRequested) break;
-
-        const row = rows[index];
-        row.status = "prompting";
-        renderRowStatus(row);
-        setStatus("work", `Rabby prompt ${index + 1}/${rows.length}: ${shortAddress(row.address)} gets ${formatUnits(row.ttwoRaw, CONFIG.ttwoDecimals, 8)} TTWO.`);
-
-        const txHash = await state.provider.request({
-          method: "eth_sendTransaction",
-          params: [{
-            from: state.account,
-            to: CONFIG.ttwoContract,
-            value: "0x0",
-            data: encodeTransfer(row.address, row.ttwoRaw),
-          }],
-        });
-
-        row.status = "sent";
-        row.txHash = txHash || "";
-        renderRowStatus(row);
-      }
-
-      updateCsvUrl();
-      setStatus(state.stopRequested ? "bad" : "good", state.stopRequested ? "Stopped. You can resume from the next unsent rank." : "Airdrop prompts finished.");
-    } catch (error) {
-      const active = rows.find((row) => row.status === "prompting");
-      if (active) {
-        active.status = "error";
-        renderRowStatus(active);
-      }
-      throw error;
-    } finally {
-      state.sending = false;
-      setBusy(false);
-      updateSendAvailability();
-    }
-  }
-
   async function tokenBalanceViaWallet(contract, owner) {
     const result = await state.provider.request({
       method: "eth_call",
@@ -521,10 +434,6 @@
 
   function encodeBalanceOf(address) {
     return `0x70a08231${encodeAddress(address)}`;
-  }
-
-  function encodeTransfer(address, value) {
-    return `0xa9059cbb${encodeAddress(address)}${encodeUint256(value)}`;
   }
 
   function encodeAddress(address) {
@@ -602,14 +511,6 @@
     return a > b ? -1 : 1;
   }
 
-  function parsePositiveInt(value, label) {
-    const parsed = Number(String(value).trim());
-    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
-      throw new Error(`${label} must be a positive whole number.`);
-    }
-    return parsed;
-  }
-
   function shortAddress(address) {
     return address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "—";
   }
@@ -627,24 +528,10 @@
     status.textContent = message;
   }
 
-  function setBusy(isBusy, { sending = false } = {}) {
+  function setBusy(isBusy) {
     $(selectors.connectButton).disabled = isBusy;
     $(selectors.snapshotButton).disabled = isBusy;
     $(selectors.downloadCsv).disabled = isBusy || !state.snapshot?.rows?.length;
-    $(selectors.stopButton).disabled = !sending;
-    updateSendAvailability();
-  }
-
-  function updateSendAvailability() {
-    const canSend = Boolean(
-      state.snapshot?.rows?.length &&
-      state.account &&
-      state.snapshot.ttwoBalanceRaw > 0n &&
-      $(selectors.realSendConfirm).checked &&
-      !state.sending
-    );
-    $(selectors.sendButton).disabled = !canSend;
-    $(selectors.downloadCsv).disabled = !state.snapshot?.rows?.length || state.sending;
   }
 
   function renderEmpty(message) {

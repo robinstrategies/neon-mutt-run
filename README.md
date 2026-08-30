@@ -134,7 +134,7 @@ The tool auto-finds TTWO on Robinhood Chain from Robinhood's public assets API. 
 
 Do not put private keys, seed phrases, passkeys, or wallet secrets into the public website. The public site only asks Rabby for wallet connection and transaction approvals.
 
-## Browser Rabby airdrop page
+## Browser Rabby snapshot page
 
 Open `/airdrop.html` on the deployed site or local static server.
 
@@ -142,9 +142,9 @@ Open `/airdrop.html` on the deployed site or local static server.
 - Press **Snapshot**.
 - Review all wallets holding at least `100000` GSA.
 - Download the CSV if you want a record.
-- Check the real-send box and press **Send TTWO Airdrop** only when ready.
+- Use `/claims-admin.html` for the daily claim-vault round.
 
-The browser page never asks for a private key. It uses Rabby wallet approvals for TTWO transfers. Large airdrops may require one wallet prompt per recipient.
+The snapshot page never asks for a private key and cannot send TTWO directly. Real TTWO movement happens through the claim-vault admin page with Rabby approvals.
 
 ## Claimable TTWO rounds
 
@@ -181,6 +181,7 @@ Security notes:
 - Never put a real private key, seed phrase, passkey, or service-role key in this public repo.
 - `security-guard.js` is loaded on public pages to disable form autocomplete and wipe private-key/seed-phrase-looking values from local or session browser storage.
 - The Supabase `sb_publishable_...` scoreboard key is public by design; keep Supabase RLS enabled and never publish a service-role key.
+- The older direct-send airdrop page has been retired into snapshot-only mode so TTWO movement stays in the audited claim-vault path.
 - Rabby should show every real deployment, approval, funding, and claim transaction before it is sent.
 - The claim page checks that the vault points to the expected TTWO token before it lets users claim.
 - Test with a tiny TTWO amount before funding a real round.
