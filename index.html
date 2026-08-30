@@ -3,65 +3,127 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Neon Mutt Run — a free, original arcade survival game." />
-    <title>Neon Mutt Run</title>
-    <link rel="stylesheet" href="style.css?v=20260829-points1" />
+    <meta name="description" content="Grand Stock Auto — a free parody memecoin landing page and top-down browser mini game." />
+    <title>Grand Stock Auto | GSA / TTWO</title>
+    <link rel="stylesheet" href="style.css?v=20260829-gsa1" />
   </head>
   <body>
-    <main class="shell">
-      <header>
-        <a class="brand" href="/">NEON<br /><span>MUTT RUN</span></a>
-        <div class="tag">BUBBLE CITY · STOCKY VERMICELLI</div>
-        <button class="help" id="helpButton" aria-label="Show controls">?</button>
+    <main class="site" id="top">
+      <header class="topbar" aria-label="Grand Stock Auto navigation">
+        <a class="brand" href="#top">GSA</a>
+        <nav aria-label="Page sections">
+          <a href="#pair">Pair</a>
+          <a href="#game-section">Game</a>
+          <a href="#disclaimer">Disclaimer</a>
+        </nav>
+        <button class="help" id="helpButton" aria-label="Show game controls">?</button>
       </header>
 
-      <section class="game-frame" aria-label="Neon Mutt Run game">
-        <canvas id="game" width="960" height="600" tabindex="0" aria-label="Playable game area" aria-keyshortcuts="W A S D ArrowUp ArrowDown ArrowLeft ArrowRight F Space E"></canvas>
-        <div class="hud">
-          <div><small>VITALITY</small><div class="bar"><i id="healthBar"></i></div></div>
-          <div class="stat"><small>KNOCKOUTS</small><strong id="kills">00</strong></div>
-          <div class="stat"><small>SPARKS</small><strong id="ammo">∞</strong></div>
-          <div class="stat"><small>MULTI</small><strong id="mult">X1</strong></div>
-          <div class="stat"><small>HEAT</small><strong id="heat">01</strong></div>
-          <div class="stat"><small>TIME ALIVE</small><strong id="timer">00:00</strong></div>
-          <div class="stat score"><small>RUN SCORE</small><strong id="score">00000</strong></div>
+      <section class="hero" aria-label="Grand Stock Auto introduction">
+        <div class="hero-bg" aria-hidden="true"></div>
+        <div class="hero-shade" aria-hidden="true"></div>
+        <div class="hero-content">
+          <p class="eyebrow">MEMEHOOK · TOP-DOWN PARODY ARCADE CHAOS</p>
+          <h1 class="neon-title"><span>GRAND</span><span>STOCK</span><span>AUTO</span></h1>
+          <p class="hero-copy">A neon gator fever dream for the GSA / TTWO pair — a free mini game, a public leaderboard, and a little market satire with teeth.</p>
+          <div class="hero-actions">
+            <a class="primary" href="#pair">SEE THE PAIR</a>
+            <a class="secondary" href="#game-section">PLAY THE GAME</a>
+          </div>
         </div>
-        <div class="touch-controls" aria-label="Touch controls">
-          <div class="touch-dpad"><button data-key="w" aria-label="Move up">▲</button><button data-key="a" aria-label="Move left">◀</button><button data-key="s" aria-label="Move down">▼</button><button data-key="d" aria-label="Move right">▶</button></div>
-          <div><button data-key="f" class="touch-action zap">ZAP</button><button data-key=" " class="touch-action">BONK</button><button data-key="e" class="touch-action ride">RIDE</button></div>
+        <a class="scroll-cue" href="#pair" aria-label="Scroll to pair section">SCROLL ↓</a>
+      </section>
+
+      <section class="pair-section" id="pair" aria-label="GSA token and TTWO stock pair">
+        <div class="pair-card">
+          <p class="eyebrow">GRANDSTOCKAUTO / TAKE-TWO INTERACTIVE</p>
+          <h2>GSA / TTWO</h2>
+          <p class="contract-label">Contract address</p>
+          <code>&lt;insert contract address here&gt;</code>
+          <p class="goal">Goal: To be the <b>1 BN runner</b> on <a href="https://app.long.xyz/" target="_blank" rel="noopener">long.xyz</a>.</p>
         </div>
-        <div id="startScreen" class="overlay">
-          <p class="eyebrow">BUBBLE CITY · STOCKY VERMICELLI</p>
-          <h1>STAY WEIRD.<br />STAY UPRIGHT.</h1>
-          <p>Guide Stocky through Bubble City. Rival crews, crooked badge creeps, reckless drivers, ringing side hustles, and loudmouth bosses all want the street to themselves.</p>
-          <button id="startButton" class="primary">START A RUN</button>
-          <p class="keys">MOVE: WASD / ARROWS &nbsp;·&nbsp; ZAP: F OR CLICK &nbsp;·&nbsp; BONK: SPACE &nbsp;·&nbsp; RIDE: E</p>
-        </div>
-        <div id="gameOver" class="overlay hidden">
-          <p class="eyebrow">RUN OVER</p>
-          <h1>THAT GOT<br />CHAOTIC.</h1>
-          <p id="resultLine"></p>
-          <label for="playerName">PUT YOUR NAME ON THE BOARD</label>
-          <div class="entry"><input id="playerName" maxlength="14" placeholder="RASCAL" /><button id="submitScore" class="primary">POST</button></div>
-          <button id="againButton" class="text-button">RUN IT BACK ↗</button>
+        <div class="token-grid" aria-label="Grand Stock Auto concept cards">
+          <article>
+            <span>01</span>
+            <h3>Ticker: GSA</h3>
+            <p>GrandStockAuto is the memecoin side of the pair: loud, weird, gator-coded, and built around a browser game anyone can play.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>Community engine</h3>
+            <p>Concept: 25% of fees drip toward the community, while another 25% routes to burns — a mischievous way to point attention back at TTWO holders.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>Upcoming utility</h3>
+            <p>An open-source AI Telegram bot that tracks GTA 6, Take-Two game news, TTWO price action, and posts alert summaries to Telegram and Twitter. Users can retarget the source to the stock of their choice.</p>
+          </article>
         </div>
       </section>
 
-      <section class="bottom-row">
-        <article class="howto">
-          <p class="eyebrow">HOW TO ROLL</p>
-          <h2>Small city. Big nonsense.</h2>
-          <p>Chase a high score by zapping actual threats, stacking multipliers, taking phone hustles, and cracking lucky crates. Pedestrians wander between stores, traffic moves on its own, and the bigger map still only renders the nearby camera view.</p>
-        </article>
-        <aside class="board">
-          <div class="board-title"><span>LIVE SCOREBOARD</span><button id="refreshBoard" aria-label="Refresh scoreboard">↻</button></div>
-          <ol id="leaderboard"><li><span class="rank">01</span><b>LOADING...</b><em>—</em></li></ol>
-          <p class="board-note" id="boardNote">Local demo scores are shown until Supabase is connected.</p>
-        </aside>
+      <section class="game-shell" id="game-section" aria-label="Grand Stock Auto mini game">
+        <div class="section-heading">
+          <p class="eyebrow">FREE MINI GAME · LEADERBOARD READY</p>
+          <h2>Stocky Gator Sim</h2>
+          <p>Survive Bubble City, zap rival creeps, dodge crooked-badge villains, hijack silly cars, and post your run score when the global board is connected.</p>
+        </div>
+
+        <section class="game-frame" aria-label="Stocky Gator Sim playable game">
+          <canvas id="game" width="960" height="600" tabindex="0" aria-label="Playable game area" aria-keyshortcuts="W A S D ArrowUp ArrowDown ArrowLeft ArrowRight F Space E"></canvas>
+          <div class="hud">
+            <div><small>VITALITY</small><div class="bar"><i id="healthBar"></i></div></div>
+            <div class="stat"><small>KNOCKOUTS</small><strong id="kills">00</strong></div>
+            <div class="stat"><small>SPARKS</small><strong id="ammo">∞</strong></div>
+            <div class="stat"><small>MULTI</small><strong id="mult">X1</strong></div>
+            <div class="stat"><small>HEAT</small><strong id="heat">01</strong></div>
+            <div class="stat"><small>TIME ALIVE</small><strong id="timer">00:00</strong></div>
+            <div class="stat score"><small>RUN SCORE</small><strong id="score">00000</strong></div>
+          </div>
+          <div class="touch-controls" aria-label="Touch controls">
+            <div class="touch-dpad"><button data-key="w" aria-label="Move up">▲</button><button data-key="a" aria-label="Move left">◀</button><button data-key="s" aria-label="Move down">▼</button><button data-key="d" aria-label="Move right">▶</button></div>
+            <div><button data-key="f" class="touch-action zap">ZAP</button><button data-key=" " class="touch-action">BONK</button><button data-key="e" class="touch-action ride">RIDE</button></div>
+          </div>
+          <div id="startScreen" class="overlay">
+            <p class="eyebrow">BUBBLE CITY · STOCKY VERMICELLI</p>
+            <h1>STAY WEIRD.<br />STAY UPRIGHT.</h1>
+            <p>Guide Stocky through Bubble City. Rival crews, crooked badge creeps, reckless drivers, ringing side hustles, and loudmouth bosses all want the street to themselves.</p>
+            <button id="startButton" class="primary">START A RUN</button>
+            <p class="keys">MOVE: WASD / ARROWS &nbsp;·&nbsp; ZAP: F OR CLICK &nbsp;·&nbsp; BONK: SPACE &nbsp;·&nbsp; RIDE: E</p>
+          </div>
+          <div id="gameOver" class="overlay hidden">
+            <p class="eyebrow">RUN OVER</p>
+            <h1>THAT GOT<br />CHAOTIC.</h1>
+            <p id="resultLine"></p>
+            <label for="playerName">PUT YOUR NAME ON THE BOARD</label>
+            <div class="entry"><input id="playerName" maxlength="14" placeholder="RASCAL" /><button id="submitScore" class="primary">POST</button></div>
+            <button id="againButton" class="text-button">RUN IT BACK ↗</button>
+          </div>
+        </section>
+
+        <section class="bottom-row">
+          <article class="howto">
+            <p class="eyebrow">HOW TO ROLL</p>
+            <h2>Small city. Big nonsense.</h2>
+            <p>Chase a high score by zapping actual threats, stacking multipliers, taking phone hustles, and cracking lucky crates. Pedestrians wander between stores, traffic moves on its own, and the bigger map still only renders the nearby camera view.</p>
+          </article>
+          <aside class="board">
+            <div class="board-title"><span>LIVE SCOREBOARD</span><button id="refreshBoard" aria-label="Refresh scoreboard">↻</button></div>
+            <ol id="leaderboard"><li><span class="rank">01</span><b>LOADING...</b><em>—</em></li></ol>
+            <p class="board-note" id="boardNote">Local demo scores are shown until Supabase is connected.</p>
+          </aside>
+        </section>
+      </section>
+
+      <section class="disclaimer" id="disclaimer" aria-label="Disclaimer">
+        <p class="eyebrow">DISCLAIMER</p>
+        <h2>For fun. For memes. Not financial advice.</h2>
+        <p>This is an unofficial parody project for entertainment purposes only. It is not affiliated with, endorsed by, or sponsored by Take-Two Interactive, Rockstar Games, Grand Theft Auto, Long, or any related brand.</p>
+        <p>Game bucks, scores, points, and leaderboard placement are not used right now for any utility and are purely for fun.</p>
       </section>
     </main>
+
     <dialog id="helpDialog"><button id="closeHelp" aria-label="Close help">×</button><p class="eyebrow">BUBBLE CITY GUIDE</p><h2>How Stocky stays upright</h2><p>Keep moving and use <b>F</b> to fire. Keyboard and touch shots auto-lean toward nearby threats; mouse and taps aim at the spot you pick. Press <b>E</b> near ringing phones for side hustles or near garages while driving to cool the heat.</p></dialog>
     <script src="supabase-config.js"></script>
-    <script src="game.js?v=20260829-points1"></script>
+    <script src="game.js?v=20260829-gsa1"></script>
   </body>
 </html>

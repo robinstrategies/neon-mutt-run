@@ -1,6 +1,19 @@
-# Neon Mutt Run
+# Grand Stock Auto
 
-An original, free browser arcade survival game set in **Bubble City**. You play as **Stocky Vermicelli**, a scrappy gator survivor navigating a scrolling, phone-friendly city playground full of wandering pedestrians, crooked-badge villains, rival crews, reckless traffic, ringing side hustles, lucky crates, and occasional loudmouth bosses. Its setting, visual language, characters, vehicle names, and mechanics are independent from any existing game franchise.
+**Grand Stock Auto** is a neon parody memecoin landing page for the **GSA / TTWO** idea, paired with a free browser mini game called **Stocky Gator Sim**. The landing page introduces the ticker, long.xyz launch concept, community fee-drip/burn idea, upcoming open-source AI alert bot, and the playable leaderboard hook.
+
+The game is set in **Bubble City**. You play as **Stocky Vermicelli**, a scrappy gator survivor navigating a scrolling, phone-friendly city playground full of wandering pedestrians, crooked-badge villains, rival crews, reckless traffic, ringing side hustles, lucky crates, and occasional loudmouth bosses.
+
+This is an unofficial parody project for entertainment purposes only. It is not affiliated with, endorsed by, or sponsored by Take-Two Interactive, Rockstar Games, Grand Theft Auto, Long, or any related brand.
+
+## Meme concept
+
+- **Ticker:** GSA
+- **Pair:** GSA / TTWO
+- **Launch venue:** app.long.xyz
+- **Goal:** to be the 1 BN runner on long.xyz
+- **Community concept:** 25% of fees drip toward community holders and another 25% routes to burns
+- **Upcoming utility:** an open-source AI Telegram bot that tracks GTA 6, Take-Two game news, TTWO price action, and posts alerts to Telegram and Twitter. Users can retarget the source to the stock of their choice.
 
 ## Controls
 
@@ -20,6 +33,8 @@ The city begins at Heat 01. Every 30 seconds, the heat rises, and loud play adds
 ## Run locally
 
 Open `index.html` in a modern browser, or serve this folder with any static-file host.
+
+The landing page uses `assets/gsa-gator-bg.jpg` as the hero background.
 
 ## QA smoke test
 
