@@ -1,5 +1,5 @@
 (() => {
-  window.NMR_BUILD = '20260829-gsa1';
+  window.NMR_BUILD = '20260829-scroll1';
   const canvas = document.querySelector('#game');
   if (!canvas.hasAttribute('tabindex')) canvas.tabIndex = 0;
   const ctx = canvas.getContext('2d');
@@ -2284,8 +2284,11 @@
   $('#againButton').onclick = start;
   $('#submitScore').onclick = submit;
   $('#refreshBoard').onclick = leaderboard;
-  $('#helpButton').onclick = () => $('#helpDialog').showModal();
-  $('#closeHelp').onclick = () => $('#helpDialog').close();
+  const helpButton = $('#helpButton');
+  const helpDialog = $('#helpDialog');
+  const closeHelp = $('#closeHelp');
+  if (helpButton && helpDialog) helpButton.onclick = () => helpDialog.showModal();
+  if (closeHelp && helpDialog) closeHelp.onclick = () => helpDialog.close();
   document.querySelectorAll('[data-key]').forEach(button => {
     const key = button.dataset.key;
     const down = e => {
@@ -2311,9 +2314,9 @@
   renderBoard(demoScores);
   reset();
   draw();
-  window.NMR_BOTTOM_REACHED = '20260829-gsa1';
-  document.documentElement.dataset.nmrBuild = '20260829-gsa1';
-  document.documentElement.dataset.nmrBottomReached = '20260829-gsa1';
+  window.NMR_BOTTOM_REACHED = '20260829-scroll1';
+  document.documentElement.dataset.nmrBuild = '20260829-scroll1';
+  document.documentElement.dataset.nmrBottomReached = '20260829-scroll1';
   if (params.has('selftest')) {
     publishSelfTest({
       passed: 0,
