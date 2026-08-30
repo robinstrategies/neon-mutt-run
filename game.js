@@ -1,5 +1,5 @@
 (() => {
-  window.NMR_BUILD = '20260829-neondividers1';
+  window.NMR_BUILD = '20260829-simplecopy1';
   const canvas = document.querySelector('#game');
   if (!canvas.hasAttribute('tabindex')) canvas.tabIndex = 0;
   const ctx = canvas.getContext('2d');
@@ -126,6 +126,7 @@
     over: $('#gameOver'),
     result: $('#resultLine'),
     name: $('#playerName'),
+    boardTitle: $('#boardTitle'),
     board: $('#leaderboard'),
     note: $('#boardNote')
   };
@@ -2240,8 +2241,9 @@
   }
 
   function renderBoard(rows, remote = false) {
+    if (ui.boardTitle) ui.boardTitle.textContent = remote ? 'GLOBAL SCOREBOARD' : 'DEMO SCOREBOARD';
     ui.board.innerHTML = rows.slice(0, 5).map((s, i) => `<li><span class="rank">${String(i + 1).padStart(2, '0')}</span><b>${safe(s.name || 'RASCAL')}</b><em>${Number(s.score).toLocaleString()}</em></li>`).join('');
-    ui.note.textContent = remote ? 'Global scores · point total blends time alive, knockouts, and bonus points.' : 'Local demo scores are shown until Supabase is connected.';
+    ui.note.textContent = remote ? 'Global scores are live.' : 'Demo scores for now.';
   }
 
   function safe(s) {
@@ -2260,7 +2262,7 @@
       renderBoard(await r.json(), true);
     } catch {
       renderBoard(demoScores);
-      ui.note.textContent = 'Could not reach the live board. Showing demo scores.';
+      ui.note.textContent = 'Live board offline. Demo scores shown.';
     }
   }
 
@@ -2314,9 +2316,9 @@
   renderBoard(demoScores);
   reset();
   draw();
-  window.NMR_BOTTOM_REACHED = '20260829-neondividers1';
-  document.documentElement.dataset.nmrBuild = '20260829-neondividers1';
-  document.documentElement.dataset.nmrBottomReached = '20260829-neondividers1';
+  window.NMR_BOTTOM_REACHED = '20260829-simplecopy1';
+  document.documentElement.dataset.nmrBuild = '20260829-simplecopy1';
+  document.documentElement.dataset.nmrBottomReached = '20260829-simplecopy1';
   if (params.has('selftest')) {
     publishSelfTest({
       passed: 0,

@@ -58,7 +58,7 @@ create policy "scores are readable" on public.scores for select using (true);
 create policy "anyone can post a score" on public.scores for insert with check (true);
 ```
 
-2. Copy `supabase-config.js`, add your project URL and anonymous key, then deploy. The game automatically switches from its local demo leaderboard to the global board.
+2. Copy `supabase-config.js`, add your project URL and anonymous key, then deploy. The game is already wired to switch from demo scores to the global board once those values are present.
 
 For a production leaderboard, add a small server-side score validation endpoint or Supabase Edge Function. Browser-only clients can be tampered with, so direct inserts are best suited to a casual community game.
 

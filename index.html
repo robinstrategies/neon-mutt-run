@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Grand Stock Auto — a free parody memecoin landing page and top-down browser mini game." />
     <title>Grand Stock Auto | GSA / TTWO</title>
-    <link rel="stylesheet" href="style.css?v=20260829-neondividers1" />
+    <link rel="stylesheet" href="style.css?v=20260829-simplecopy1" />
   </head>
   <body>
     <main class="site" id="top">
@@ -59,7 +59,7 @@
           <div class="section-heading">
             <p class="eyebrow">FREE MINI GAME · LEADERBOARD READY</p>
             <h2>Stocky Gator Sim</h2>
-            <p>Survive Bubble City, zap rival creeps, dodge crooked-badge villains, hijack silly cars, and post your run score when the global board is connected.</p>
+            <p>Move. Zap threats. Grab cars. Stay alive.</p>
           </div>
 
           <section class="game-frame" aria-label="Stocky Gator Sim playable game">
@@ -80,7 +80,7 @@
             <div id="startScreen" class="overlay">
               <p class="eyebrow">BUBBLE CITY · STOCKY VERMICELLI</p>
               <h1>STAY WEIRD.<br />STAY UPRIGHT.</h1>
-              <p>Guide Stocky through Bubble City. Rival crews, crooked badge creeps, reckless drivers, ringing side hustles, and loudmouth bosses all want the street to themselves.</p>
+              <p>Survive Bubble City. Enemies chase. Cars hurt. Bosses talk trash.</p>
               <button id="startButton" class="primary">START A RUN</button>
               <p class="keys">MOVE: WASD / ARROWS &nbsp;·&nbsp; ZAP: F OR CLICK &nbsp;·&nbsp; BONK: SPACE &nbsp;·&nbsp; RIDE: E</p>
             </div>
@@ -97,13 +97,13 @@
           <section class="bottom-row">
             <article class="howto">
               <p class="eyebrow">HOW TO ROLL</p>
-              <h2>Small city. Big nonsense.</h2>
-              <p>Chase a high score by zapping actual threats, stacking multipliers, taking phone hustles, and cracking lucky crates. Pedestrians wander between stores, traffic moves on its own, and the bigger map still only renders the nearby camera view.</p>
+              <h2>Move. Zap. Drive.</h2>
+              <p>Survive longer, knock out threats, grab powerups, and steal cars when things get ugly.</p>
             </article>
             <aside class="board">
-              <div class="board-title"><span>LIVE SCOREBOARD</span><button id="refreshBoard" aria-label="Refresh scoreboard">↻</button></div>
+              <div class="board-title"><span id="boardTitle">DEMO SCOREBOARD</span><button id="refreshBoard" aria-label="Refresh scoreboard">↻</button></div>
               <ol id="leaderboard"><li><span class="rank">01</span><b>LOADING...</b><em>—</em></li></ol>
-              <p class="board-note" id="boardNote">Local demo scores are shown until Supabase is connected.</p>
+              <p class="board-note" id="boardNote">Demo scores for now.</p>
             </aside>
           </section>
         </section>
@@ -119,6 +119,6 @@
 
     <dialog id="helpDialog"><button id="closeHelp" aria-label="Close help">×</button><p class="eyebrow">BUBBLE CITY GUIDE</p><h2>How Stocky stays upright</h2><p>Keep moving and use <b>F</b> to fire. Keyboard and touch shots auto-lean toward nearby threats; mouse and taps aim at the spot you pick. Press <b>E</b> near ringing phones for side hustles or near garages while driving to cool the heat.</p></dialog>
     <script src="supabase-config.js"></script>
-    <script src="game.js?v=20260829-neondividers1"></script>
+    <script src="game.js?v=20260829-simplecopy1"></script>
   </body>
 </html>
