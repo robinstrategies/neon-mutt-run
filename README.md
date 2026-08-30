@@ -21,6 +21,10 @@ The city begins at Heat 01. Every 30 seconds, the heat rises, and loud play adds
 
 Open `index.html` in a modern browser, or serve this folder with any static-file host.
 
+## QA smoke test
+
+Serve the folder and open `/?selftest=1`. The game runs a hidden self-test covering city generation, controls, projectiles, enemy shooting, drops, side hustles, bosses, garages, and scoreboard name escaping.
+
 ## Global score board (Supabase)
 
 1. Create a Supabase project and run this SQL in its SQL editor:

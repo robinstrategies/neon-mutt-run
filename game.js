@@ -1,4 +1,5 @@
 (() => {
+  window.NMR_BUILD = '20260829-qa7';
   const canvas = document.querySelector('#game');
   const ctx = canvas.getContext('2d');
   const W = canvas.width;
@@ -1814,6 +1815,217 @@
     return Math.max(min, Math.min(max, n));
   }
 
+  function publishSelfTest(payload) {
+    window.NMR_SELFTEST_RESULTS = payload;
+    document.documentElement.dataset.nmrSelftest = JSON.stringify(payload);
+  }
+
+  async function runSelfTest() {
+    const results = [];
+    const assert = (name, ok, details = '') => results.push({ name, ok: Boolean(ok), details });
+    const p0 = () => game.player;
+    const openNearPlayer = (preferred = 90) => {
+      const p = p0();
+      for (const dist of [preferred, 60, 120, 180, 240]) {
+        for (let i = 0; i < 32; i++) {
+          const a = (Math.PI * 2 * i) / 32;
+          const x = clamp(p.x + Math.cos(a) * dist, 20, WORLD_W - 20);
+          const y = clamp(p.y + Math.sin(a) * dist, 20, WORLD_H - 20);
+          if (!blocked(x, y, 16) && !lineBlocked(p.x, p.y, x, y)) return { x, y };
+        }
+      }
+      return { x: p.x, y: p.y };
+    };
+
+    try {
+      reset();
+      ui.start.classList.add('hidden');
+      ui.over.classList.add('hidden');
+      keys.clear();
+
+      assert('canvas and world stay phone-friendly', W === 960 && H === 600 && WORLD_W <= 3200 && WORLD_H <= 2200, `${W}x${H} in ${WORLD_W}x${WORLD_H}`);
+      assert('Bubble City has varied buildings and storefronts', buildings.length >= 30 && stores.length >= 16, `${buildings.length} buildings, ${stores.length} stores`);
+      assert('phones and garages exist for side hustles', phones.length >= 3 && garages.length >= 3, `${phones.length} phones, ${garages.length} garages`);
+      assert('pedestrians visit stores and do not target the player', game.peds.length >= 12 && game.peds.every(ped => ped.target && ped.hp === undefined && ped.shootCd === undefined), `${game.peds.length} peds`);
+      assert('initial threats include gang and crooked-badge villains', game.enemies.some(e => e.type === 'gang') && game.enemies.some(e => e.type === 'badge'), game.enemies.map(e => e.type).join(','));
+      assert('traffic drivers are active', game.cars.some(c => c.kind === 'traffic') && game.cars.some(c => c.kind === 'parked'), `${game.cars.length} cars`);
+
+      const shotCount = game.bullets.length;
+      pressAction('f');
+      assert('keyboard/touch fire path creates a projectile', game.bullets.length > shotCount, `${shotCount}->${game.bullets.length}`);
+
+      const targetPoint = openNearPlayer(70);
+      const target = {
+        x: targetPoint.x,
+        y: targetPoint.y,
+        a: 0,
+        type: 'gang',
+        hp: 2,
+        maxHp: 2,
+        speed: 0,
+        color: '#ff7b63',
+        hair: '#28304c',
+        radius: 11,
+        runId: game.id,
+        stun: 0,
+        speech: null,
+        speechCd: 0,
+        hitFlash: 0
+      };
+      const killsBefore = game.kills;
+      game.enemies.push(target);
+      game.bullets.push({ kind: 'spark', x: target.x, y: target.y, vx: 0, vy: 0, life: 1, damage: 3, radius: 4 });
+      updateBullets(0.016);
+      assert('player projectiles can defeat enemies and award money', game.kills === killsBefore + 1 && target.counted && game.cash > 0, `kills ${killsBefore}->${game.kills}`);
+
+      const shooterPoint = openNearPlayer(130);
+      const enemyShotCount = game.enemyBullets.length;
+      enemyShoot({ x: shooterPoint.x, y: shooterPoint.y, hp: 2, runId: game.id, radius: 12 }, 270, 2.2);
+      assert('crooked-badge/gang shooters can fire at Stocky', game.enemyBullets.length > enemyShotCount, `${enemyShotCount}->${game.enemyBullets.length}`);
+
+      const healthBeforeShot = game.health;
+      game.enemyBullets.push({ x: game.player.x, y: game.player.y, vx: 0, vy: 0, life: 1, damage: 6 });
+      updateBullets(0.016);
+      assert('enemy bullets damage the player', game.health < healthBeforeShot, `${healthBeforeShot}->${game.health}`);
+
+      const crate = { x: game.player.x + 18, y: game.player.y, life: 1, spin: 0 };
+      game.crates.push(crate);
+      bonk();
+      assert('bonk breaks nearby lucky crates', crate.life <= 0 && game.drops.length > 0, `${game.drops.length} drops`);
+
+      game.drops = [];
+      game.player.weapon = 'spark';
+      dropItem(game.player.x, game.player.y, 'rocket');
+      updateDrops(0.016);
+      assert('rocket pickup equips a timed overpowered weapon', game.player.weapon === 'rocket' && game.player.weaponT > 9.5, game.player.weaponT.toFixed(2));
+
+      game.player.weapon = 'spark';
+      dropItem(game.player.x, game.player.y, 'flame');
+      updateDrops(0.016);
+      assert('flame pickup equips timed fireballs', game.player.weapon === 'flame' && game.player.weaponT > 19.5, game.player.weaponT.toFixed(2));
+
+      game.armor = 0;
+      dropItem(game.player.x, game.player.y, 'armor');
+      updateDrops(0.016);
+      assert('armor pickup works', game.armor > 0, String(game.armor));
+
+      game.player.turboT = 0;
+      dropItem(game.player.x, game.player.y, 'turbo');
+      updateDrops(0.016);
+      assert('turbo pickup works', game.player.turboT > 9.5, game.player.turboT.toFixed(2));
+
+      game.mult = 1;
+      dropItem(game.player.x, game.player.y, 'multi');
+      updateDrops(0.016);
+      assert('multiplier pickup works', game.mult === 2, `x${game.mult}`);
+
+      game.noise = 100;
+      dropItem(game.player.x, game.player.y, 'quiet');
+      updateDrops(0.016);
+      assert('quiet pickup cools heat noise', game.noise < 100, String(game.noise));
+
+      game.health = 50;
+      dropItem(game.player.x, game.player.y, 'heal');
+      updateDrops(0.016);
+      assert('heal pickup restores vitality', game.health > 50, String(game.health));
+
+      game.mission = null;
+      dropItem(game.player.x, game.player.y, 'frenzy');
+      updateDrops(0.016);
+      assert('frenzy pickup starts a timed sweep challenge', game.mission?.type === 'sweep' && game.player.weapon === 'flame', game.mission?.text || '');
+
+      game.mission = { type: 'sweep', remaining: 1, total: 1, timer: 10, reward: 120, text: 'QA sweep' };
+      const cashBeforeSweep = game.cash;
+      awardEnemy({ type: 'gang', counted: false });
+      assert('sweep side hustle completes from enemy knockouts', !game.mission && game.cash > cashBeforeSweep, `$${cashBeforeSweep}->${game.cash}`);
+
+      game.mission = { type: 'wreck', remaining: 1, total: 1, timer: 10, reward: 120, text: 'QA wreck' };
+      const traffic = { kind: 'traffic', x: game.player.x + 36, y: game.player.y, life: 1, maxLife: 90, radius: 25 };
+      game.cars.push(traffic);
+      wreckCar(traffic, false);
+      assert('wreck side hustle completes from traffic takedowns', !game.mission && traffic.life <= 0, String(traffic.life));
+
+      game.mission = { type: 'courier', target: { x: game.player.x, y: game.player.y }, timer: 10, reward: 120, text: 'QA courier' };
+      game.player.vehicle = { kind: 'parked', occupied: true, life: 80, maxLife: 100, radius: 25 };
+      updateMission(0.016);
+      assert('courier side hustle completes at a target while driving', !game.mission, game.mission?.text || 'complete');
+
+      const garage = garages[0];
+      if (garage) {
+        const ride = { kind: 'parked', occupied: true, x: garage.x, y: garage.y, life: 25, maxLife: 100, radius: 25 };
+        game.player.vehicle = ride;
+        game.player.x = garage.x;
+        game.player.y = garage.y;
+        game.noise = 90;
+        const used = useGarage();
+        assert('garages repair rides and cool heat', used && ride.life > 25 && game.noise < 90, `${ride.life}/${game.noise}`);
+      } else {
+        assert('garages repair rides and cool heat', false, 'no garage generated');
+      }
+
+      const bossesBefore = game.enemies.filter(e => e.type?.startsWith('boss')).length + game.cars.filter(c => c.kind === 'boss').length;
+      spawnBoss();
+      const bossesAfter = game.enemies.filter(e => e.type?.startsWith('boss')).length + game.cars.filter(c => c.kind === 'boss').length;
+      assert('boss spawner introduces a large villain', bossesAfter > bossesBefore, `${bossesBefore}->${bossesAfter}`);
+
+      const movingCar = game.cars.find(c => c.kind === 'traffic' && c.life > 0);
+      if (movingCar) {
+        const ox = movingCar.x;
+        const oy = movingCar.y;
+        updateTraffic(0.25);
+        assert('traffic advances during simulation', Math.hypot(movingCar.x - ox, movingCar.y - oy) > 4, `${ox},${oy}->${movingCar.x},${movingCar.y}`);
+      } else {
+        assert('traffic advances during simulation', false, 'no traffic car');
+      }
+
+      const prevBoard = ui.board.innerHTML;
+      renderBoard([{ name: '<RUGGED>', score: 1234 }]);
+      assert('scoreboard escapes submitted names', !ui.board.innerHTML.includes('<RUGGED>') && ui.board.textContent.includes('<RUGGED>'), ui.board.innerHTML);
+      const manyScores = Array.from({ length: 1000 }, (_, i) => ({ name: `BOT${i}`, score: 1000 - i }));
+      renderBoard(manyScores);
+      assert('scoreboard renders a bounded top five from 1000 rows', ui.board.querySelectorAll('li').length === 5, `${ui.board.querySelectorAll('li').length} rows`);
+      ui.board.innerHTML = prevBoard;
+      renderBoard(demoScores);
+
+      game.t = 12.4;
+      game.kills = 2;
+      game.cash = 345;
+      game.health = 0;
+      end();
+      assert('game-over overlay summarizes a finished run', !ui.over.classList.contains('hidden') && ui.result.textContent.includes('seconds alive'), ui.result.textContent);
+
+      const boardSize = demoScores.length;
+      const c = window.NEON_MUTT_SUPABASE || {};
+      if (!c.url && !c.anonKey) {
+        ui.name.value = 'QA RASCAL';
+        $('#submitScore').textContent = 'POST';
+        await submit();
+        assert('local scoreboard submit works before Supabase is connected', demoScores.length === boardSize + 1 && $('#submitScore').textContent === 'POSTED!', `${boardSize}->${demoScores.length}`);
+        demoScores.length = boardSize;
+        ui.name.value = '';
+        $('#submitScore').textContent = 'POST';
+        renderBoard(demoScores);
+      } else {
+        assert('local scoreboard submit works before Supabase is connected', true, 'skipped because live Supabase config is present');
+      }
+    } catch (err) {
+      results.push({ name: 'self-test runner exception', ok: false, details: err?.stack || String(err) });
+    } finally {
+      const passed = results.filter(r => r.ok).length;
+      const total = results.length || 1;
+      publishSelfTest({
+        passed,
+        total,
+        rate: passed / total,
+        results
+      });
+      reset();
+      ui.start.classList.remove('hidden');
+      ui.over.classList.add('hidden');
+      draw();
+    }
+  }
+
   function renderBoard(rows, remote = false) {
     ui.board.innerHTML = rows.slice(0, 5).map((s, i) => `<li><span class="rank">${String(i + 1).padStart(2, '0')}</span><b>${safe(s.name || 'RASCAL')}</b><em>${Number(s.score).toLocaleString()}</em></li>`).join('');
     ui.note.textContent = remote ? 'Global scores · point total blends time alive, knockouts, and bubble bucks.' : 'Local demo scores are shown until Supabase is connected.';
@@ -1884,6 +2096,18 @@
   renderBoard(demoScores);
   reset();
   draw();
+  window.NMR_BOTTOM_REACHED = '20260829-qa7';
+  document.documentElement.dataset.nmrBuild = '20260829-qa7';
+  document.documentElement.dataset.nmrBottomReached = '20260829-qa7';
+  if (new URLSearchParams(location.search).has('selftest')) {
+    publishSelfTest({
+      passed: 0,
+      total: 1,
+      rate: 0,
+      results: [{ name: 'self-test scheduled', ok: false, details: 'waiting for runner' }]
+    });
+    setTimeout(runSelfTest, 0);
+  }
 
   function pressAction(key) {
     if (!game?.alive || !ui.start.classList.contains('hidden')) return;
