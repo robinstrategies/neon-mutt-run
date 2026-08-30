@@ -39,6 +39,8 @@ contract GsaTtwoDailyClaimVault {
     IERC20 public immutable ttwo;
     address public owner;
     uint256 public reservedTtwo;
+    uint256 public latestRoundId;
+    uint256 public latestOpenRoundId;
 
     mapping(uint256 => Round) private _rounds;
     mapping(uint256 => mapping(address => uint256)) public allocations;
@@ -88,6 +90,9 @@ contract GsaTtwoDailyClaimVault {
         _rounds[roundId].snapshotHash = snapshotHash;
         _rounds[roundId].exists = true;
         _rounds[roundId].label = label;
+        if (roundId > latestRoundId) {
+            latestRoundId = roundId;
+        }
 
         emit RoundCreated(roundId, snapshotHash, label);
     }
@@ -152,6 +157,9 @@ contract GsaTtwoDailyClaimVault {
         Round storage round = _round(roundId);
         if (!round.claimsOpen) revert ClaimsNotOpen();
         round.claimsOpen = false;
+        if (latestOpenRoundId == roundId) {
+            latestOpenRoundId = 0;
+        }
         emit ClaimsClosed(roundId);
     }
 
@@ -236,6 +244,7 @@ contract GsaTtwoDailyClaimVault {
         if (round.funded < round.totalAllocated) revert NotFullyFunded();
         if (!round.claimsOpen) {
             round.claimsOpen = true;
+            latestOpenRoundId = roundId;
             emit ClaimsOpened(roundId);
         }
     }

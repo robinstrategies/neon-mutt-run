@@ -28,6 +28,8 @@
       claim: "0x379607f5",
       claimable: "0xa0c7f71c",
       roundStatus: "0xe35154a5",
+      ttwo: "0x4824103c",
+      latestOpenRoundId: "0xf45abdc7",
     },
   });
 
@@ -100,10 +102,13 @@
     });
     $("#checkClaimButton").addEventListener("click", () => checkClaim().catch(handleError));
     $("#claimButton").addEventListener("click", () => claimTtwo().catch(handleError));
+    $("#vaultAddress").addEventListener("input", resetHolderClaimTarget);
+    $("#roundId").addEventListener("input", resetHolderClaimTarget);
 
     if (!hasClaimConfig()) {
       setStatus("bad", "No live claim round is set yet. Use the daily claim link when it is posted.");
     }
+    updateHolderAvailability();
   }
 
   function listenForWalletProviders() {
@@ -154,9 +159,11 @@
     }));
     const mockRounds = new Map();
     const receipts = new Map();
+    let mockLatestOpenRoundId = 0n;
 
     if (state.page === "holder") {
-      const roundId = BigInt(getInitialRoundId());
+      const roundId = BigInt(params.get("round") || window.GSA_CLAIMS_CONFIG?.latestRoundId || getTodayRoundId());
+      mockLatestOpenRoundId = roundId;
       const holders = Array.from(mockHolders.entries()).map(([address, gsaRaw]) => ({ address, gsaRaw }));
       const totalGsaRaw = holders.reduce((sum, holder) => sum + holder.gsaRaw, 0n);
       const rows = allocateTtwo(holders, totalGsaRaw, mockTtwoWalletBalance);
@@ -245,6 +252,12 @@
             const owner = `0x${data.slice(-40)}`;
             return toUint256Hex(mockHolders.get(owner) || 0n);
           }
+          if (to === mockVault && data.startsWith(CONFIG.selectors.ttwo)) {
+            return encodeAddressReturn(CONFIG.ttwoContract);
+          }
+          if (to === mockVault && data.startsWith(CONFIG.selectors.latestOpenRoundId)) {
+            return toUint256Hex(mockLatestOpenRoundId);
+          }
           if (to === mockVault && data.startsWith(CONFIG.selectors.roundStatus)) {
             const roundId = readWord(data, 0);
             const round = getRound(roundId);
@@ -308,11 +321,16 @@
             const open = readWord(data, 2) === 1n;
             const round = getRound(roundId);
             round.funded += amount;
-            if (open) round.open = true;
+            if (open) {
+              round.open = true;
+              mockLatestOpenRoundId = roundId;
+            }
           }
 
           if (to === mockVault && data.startsWith(CONFIG.selectors.openRound)) {
-            getRound(readWord(data, 0)).open = true;
+            const roundId = readWord(data, 0);
+            getRound(roundId).open = true;
+            mockLatestOpenRoundId = roundId;
           }
 
           if (to === mockVault && data.startsWith(CONFIG.selectors.claim)) {
@@ -489,7 +507,7 @@
 
     try {
       await ensureRobinhoodChain();
-      await assertContract(vault);
+      await assertClaimVault(vault);
 
       const snapshotHash = await snapshotDigest(state.snapshot, roundId);
       let round = await readRoundStatus(vault, roundId);
@@ -544,12 +562,13 @@
     if (!state.account) await connectWallet();
 
     const vault = normalizeAddress($("#vaultAddress").value);
-    const roundId = parsePositiveBigInt($("#roundId").value, "Round ID");
 
     setBusy(true);
     try {
       await ensureRobinhoodChain();
-      await assertContract(vault);
+      await assertClaimVault(vault);
+      await resolveLatestRoundIfNeeded(vault);
+      const roundId = parsePositiveBigInt($("#roundId").value, "Round ID");
       const round = await readRoundStatus(vault, roundId);
       const amount = await readClaimable(vault, roundId, state.account);
       state.claimReady = round.exists && round.claimsOpen && amount > 0n;
@@ -574,10 +593,13 @@
   async function claimTtwo() {
     if (!state.account) await connectWallet();
     const vault = normalizeAddress($("#vaultAddress").value);
-    const roundId = parsePositiveBigInt($("#roundId").value, "Round ID");
 
     setBusy(true);
     try {
+      await ensureRobinhoodChain();
+      await assertClaimVault(vault);
+      await resolveLatestRoundIfNeeded(vault);
+      const roundId = parsePositiveBigInt($("#roundId").value, "Round ID");
       setStatus("work", "Approve the claim transaction in Rabby.");
       await sendAndWait(vault, encodeClaim(roundId));
       await checkClaim();
@@ -698,6 +720,25 @@
   async function readClaimable(vault, roundId, account) {
     const data = await chainCall("eth_call", [{ to: vault, data: encodeClaimable(roundId, account) }, "latest"]);
     return hexToBigInt(data);
+  }
+
+  async function resolveLatestRoundIfNeeded(vault) {
+    if ($("#roundId").value.trim()) return;
+    setStatus("work", "Finding the latest open claim round...");
+    const data = await chainCall("eth_call", [{ to: vault, data: CONFIG.selectors.latestOpenRoundId }, "latest"]);
+    const latest = hexToBigInt(data);
+    if (latest <= 0n) throw new Error("No open claim round found for this vault yet.");
+    $("#roundId").value = latest.toString();
+    updateHolderAvailability();
+  }
+
+  async function assertClaimVault(vault) {
+    await assertContract(vault);
+    const data = await chainCall("eth_call", [{ to: vault, data: CONFIG.selectors.ttwo }, "latest"]);
+    const ttwo = readReturnAddress(data, 0);
+    if (ttwo !== CONFIG.ttwoContract) {
+      throw new Error("This vault does not point at the expected TTWO token. Do not use this claim link.");
+    }
   }
 
   async function assertContract(address) {
@@ -835,9 +876,19 @@
     }).join("")}`;
   }
 
+  function encodeAddressReturn(address) {
+    return `0x${normalizeAddress(address).slice(2).padStart(64, "0")}`;
+  }
+
   function staticChunks(data, count) {
     const clean = String(data || "").replace(/^0x/i, "");
     return Array.from({ length: count }, (_, index) => clean.slice(index * 64, index * 64 + 64).padStart(64, "0"));
+  }
+
+  function readReturnAddress(data, index) {
+    const clean = String(data || "").replace(/^0x/i, "");
+    const word = clean.slice(index * 64, index * 64 + 64).padStart(64, "0");
+    return normalizeAddress(`0x${word.slice(-40)}`);
   }
 
   async function snapshotDigest(snapshot, roundId) {
@@ -862,6 +913,11 @@
     const params = new URLSearchParams(window.location.search);
     if (params.get("round")) return params.get("round");
     if (window.GSA_CLAIMS_CONFIG?.latestRoundId) return window.GSA_CLAIMS_CONFIG.latestRoundId;
+    if (state.page === "holder") return "";
+    return getTodayRoundId();
+  }
+
+  function getTodayRoundId() {
     const now = new Date();
     const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, "0");
@@ -871,16 +927,39 @@
 
   function getInitialVaultAddress() {
     const params = new URLSearchParams(window.location.search);
-    const fromUrl = normalizeAddressSoft(params.get("contract"));
-    if (fromUrl) return fromUrl;
     const fromConfig = normalizeAddressSoft(window.GSA_CLAIMS_CONFIG?.claimVaultAddress);
     if (fromConfig) return fromConfig;
+    const fromUrl = normalizeAddressSoft(params.get("contract"));
+    if (fromUrl) return fromUrl;
     const fromStorage = normalizeAddressSoft(localStorage.getItem("gsaClaimVault"));
     return fromStorage || (isMockWallet() ? "0x2222222222222222222222222222222222222222" : "");
   }
 
   function hasClaimConfig() {
-    return Boolean(normalizeAddressSoft($("#vaultAddress")?.value) && $("#roundId")?.value.trim());
+    const hasVault = Boolean(normalizeAddressSoft($("#vaultAddress")?.value));
+    if (state.page === "holder") return hasVault;
+    return Boolean(hasVault && $("#roundId")?.value.trim());
+  }
+
+  function updateHolderAvailability() {
+    if (state.page !== "holder") return;
+    const hasVault = Boolean(normalizeAddressSoft($("#vaultAddress")?.value));
+    const checkButton = $("#checkClaimButton");
+    if (checkButton) checkButton.disabled = state.busy || !hasVault;
+    const claimButton = $("#claimButton");
+    if (claimButton) claimButton.disabled = state.busy || !state.claimReady;
+  }
+
+  function resetHolderClaimTarget() {
+    if (state.page !== "holder") return;
+    state.claimReady = false;
+    const roundStat = $("#roundStat");
+    const amountStat = $("#claimAmountStat");
+    const fundedStat = $("#fundedStat");
+    if (roundStat) roundStat.textContent = "—";
+    if (amountStat) amountStat.textContent = "—";
+    if (fundedStat) fundedStat.textContent = "—";
+    updateHolderAvailability();
   }
 
   function saveVaultAddress(options = {}) {
@@ -942,6 +1021,7 @@
     if (stopButton) stopButton.disabled = !options.publishing;
     const claimButton = $("#claimButton");
     if (claimButton) claimButton.disabled = isBusy || !state.claimReady;
+    updateHolderAvailability();
     updatePublishAvailability();
   }
 

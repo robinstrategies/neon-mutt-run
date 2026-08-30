@@ -172,6 +172,15 @@ Daily owner flow:
 
 The holder flow is just connect Rabby, check claim, then claim TTWO. The vault prevents double-claims. The page excludes wallets under `100000` GSA by default.
 
+For the main landing-page **Claim TTWO** button to work without a daily link, deploy the vault once and put that vault address in `claim-config.js`. After that, the claim page auto-loads the latest open round from the vault.
+
+Security notes:
+
+- Never put a real private key, seed phrase, passkey, or service-role key in this public repo.
+- Rabby should show every real deployment, approval, funding, and claim transaction before it is sent.
+- The claim page checks that the vault points to the expected TTWO token before it lets users claim.
+- Test with a tiny TTWO amount before funding a real round.
+
 ## Publish free/cheap
 
 Push this repository to a public GitHub repository. GitHub Pages, Cloudflare Pages, and Netlify can all host the static files inexpensively. Point a custom domain at the host when you have one.
