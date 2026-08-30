@@ -78,14 +78,14 @@ It creates a CSV in `snapshots/` using the GSA contract:
 Useful runs:
 
 ```bash
-# Current indexed holder snapshot from Robinhood Chain Blockscout
-node tools/robinhood-holder-snapshot.mjs --json snapshots/gsa-holders.json
+# Current indexed holder snapshot from Robinhood Chain Blockscout, only 100k+ GSA wallets
+node tools/robinhood-holder-snapshot.mjs --min-balance 100000 --json snapshots/gsa-holders.json
 
-# Add pro-rata planning weights for a stock-token budget
-node tools/robinhood-holder-snapshot.mjs --airdrop-budget 1000 --json snapshots/gsa-airdrop-plan.json
+# Add pro-rata planning weights for a stock-token budget, only 100k+ GSA wallets
+node tools/robinhood-holder-snapshot.mjs --min-balance 100000 --airdrop-budget 1000 --json snapshots/gsa-airdrop-plan.json
 
-# Exclude contract wallets from the planning file
-node tools/robinhood-holder-snapshot.mjs --exclude-contracts --airdrop-budget 1000
+# Exclude contract wallets too
+node tools/robinhood-holder-snapshot.mjs --exclude-contracts --min-balance 100000 --airdrop-budget 1000
 
 # Reproducible GSA snapshot from raw ERC-20 Transfer logs
 node tools/robinhood-holder-snapshot.mjs --source rpc --to-block latest
@@ -112,6 +112,12 @@ node tools/ttwo-airdrop.mjs --budget 10
 
 That command is a dry run. It creates a CSV plan and sends nothing.
 
+By default, this tool excludes anyone holding less than `100000` GSA. To change the cutoff:
+
+```powershell
+node tools/ttwo-airdrop.mjs --budget 10 --min-gsa-balance 250000
+```
+
 To split everything in a wallet, first preview with the wallet address:
 
 ```powershell
@@ -121,7 +127,7 @@ node tools/ttwo-airdrop.mjs --from 0xYourWalletAddress --budget all
 To actually send, use a saved holder snapshot and provide the private key only on your local machine:
 
 ```powershell
-node tools/robinhood-holder-snapshot.mjs --exclude-contracts --json snapshots/gsa-airdrop-plan.json
+node tools/robinhood-holder-snapshot.mjs --exclude-contracts --min-balance 100000 --json snapshots/gsa-airdrop-plan.json
 $env:GSA_AIRDROP_PRIVATE_KEY='0xYourPrivateKey'
 node tools/ttwo-airdrop.mjs --snapshot snapshots/gsa-airdrop-plan.json --budget all --send --i-understand-this-transfers-real-assets
 ```

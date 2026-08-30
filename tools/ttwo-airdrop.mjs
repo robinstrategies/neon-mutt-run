@@ -16,6 +16,8 @@ const ROBINHOOD_CHAIN_NAME = "Robinhood Chain";
 const DEFAULT_RPC = "https://rpc.mainnet.chain.robinhood.com";
 const DEFAULT_STOCK_SYMBOL = "TTWO";
 const DEFAULT_PRIVATE_KEY_ENV = "GSA_AIRDROP_PRIVATE_KEY";
+const DEFAULT_MIN_GSA_BALANCE = "100000";
+const GSA_DECIMALS = 18;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const DEAD_ADDRESS = "0x000000000000000000000000000000000000dead";
 const REAL_ASSETS_FLAG = "--i-understand-this-transfers-real-assets";
@@ -65,6 +67,8 @@ Options:
   --exclude <addresses>       Comma-separated addresses to exclude. Can repeat.
   --include-contracts         Include contract wallets from the GSA snapshot.
   --include-sender            Include the sending wallet if it is a GSA holder.
+  --min-gsa-balance <amount>  Minimum GSA required to receive TTWO. Default: ${DEFAULT_MIN_GSA_BALANCE}.
+                              Use 0 only if you intentionally want every holder.
   --min-allocation <amount>   Skip recipients below this TTWO allocation.
   --max-recipients <number>   Limit recipients, useful for testing.
   --start-at <rank>           Resume from a plan rank.
@@ -88,6 +92,7 @@ function parseArgs(argv) {
     exclude: [],
     includeContracts: false,
     includeSender: false,
+    minGsaBalance: DEFAULT_MIN_GSA_BALANCE,
     minAllocation: "0",
     maxRecipients: Infinity,
     startAt: 1,
@@ -142,6 +147,9 @@ function parseArgs(argv) {
         break;
       case "--include-sender":
         options.includeSender = true;
+        break;
+      case "--min-gsa-balance":
+        options.minGsaBalance = next();
         break;
       case "--min-allocation":
         options.minAllocation = next();
@@ -350,7 +358,7 @@ async function createFreshSnapshot(options) {
   const jsonPath = resolve(tmpdir(), `gsa-fresh-holder-snapshot-${stamp}.json`);
   const csvPath = resolve(tmpdir(), `gsa-fresh-holder-snapshot-${stamp}.csv`);
   const toolPath = resolve(dirname(fileURLToPath(import.meta.url)), "robinhood-holder-snapshot.mjs");
-  const args = [toolPath, "--json", jsonPath, "--out", csvPath, "--quiet"];
+  const args = [toolPath, "--json", jsonPath, "--out", csvPath, "--quiet", "--min-balance", options.minGsaBalance];
 
   if (!options.includeContracts) {
     args.push("--exclude-contracts");
@@ -579,12 +587,14 @@ async function getWalletAndToken(options, stock, ethers) {
 function buildPlan(rows, options, tokenContext, ethers) {
   const excluded = new Set([ZERO_ADDRESS, DEAD_ADDRESS, ...options.exclude.map((item) => normalizeAddress(item))]);
   const senderLower = tokenContext.sender ? tokenContext.sender.toLowerCase() : "";
+  const minGsaBalanceRaw = ethers.parseUnits(options.minGsaBalance, GSA_DECIMALS);
 
   if (senderLower && !options.includeSender) {
     excluded.add(senderLower);
   }
 
   const eligible = rows
+    .filter((row) => row.balanceRaw >= minGsaBalanceRaw)
     .filter((row) => !excluded.has(row.address))
     .filter((row) => options.includeContracts || row.isContract !== true)
     .sort((left, right) => compareBigIntDesc(left.balanceRaw, right.balanceRaw));
@@ -666,6 +676,8 @@ function buildPlan(rows, options, tokenContext, ethers) {
       recipients: plan.length,
       includeContracts: options.includeContracts,
       includeSender: options.includeSender,
+      minGsaBalance: options.minGsaBalance,
+      minGsaBalanceRaw: minGsaBalanceRaw.toString(),
       minAllocation: options.minAllocation,
       startAt: options.startAt,
       createdAt: new Date().toISOString(),
