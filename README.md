@@ -124,13 +124,7 @@ To split everything in a wallet, first preview with the wallet address:
 node tools/ttwo-airdrop.mjs --from 0xYourWalletAddress --budget all
 ```
 
-To actually send, use a saved holder snapshot and provide the private key only on your local machine:
-
-```powershell
-node tools/robinhood-holder-snapshot.mjs --exclude-contracts --min-balance 100000 --json snapshots/gsa-airdrop-plan.json
-$env:GSA_AIRDROP_PRIVATE_KEY='0xYourPrivateKey'
-node tools/ttwo-airdrop.mjs --snapshot snapshots/gsa-airdrop-plan.json --budget all --send --i-understand-this-transfers-real-assets
-```
+Real TTWO movement should use the Rabby claim-vault flow below. Do not use private-key based senders for production.
 
 The tool auto-finds TTWO on Robinhood Chain from Robinhood's public assets API. As of this version, TTWO resolves to:
 
@@ -138,7 +132,7 @@ The tool auto-finds TTWO on Robinhood Chain from Robinhood's public assets API. 
 0x5e81213613b6B86EaB4c6c50d718d34359459786
 ```
 
-Do not put private keys, seed phrases, passkeys, or wallet secrets into the public website. The real sender is intentionally local-only, dry-run by default, and requires an explicit real-assets flag before it broadcasts transfers.
+Do not put private keys, seed phrases, passkeys, or wallet secrets into the public website. The public site only asks Rabby for wallet connection and transaction approvals.
 
 ## Browser Rabby airdrop page
 
@@ -185,6 +179,8 @@ Security notes:
 - The admin page checks that the pasted vault uses the official compiled claim-vault bytecode before asking Rabby to approve TTWO.
 - The public holder claim page on production ignores random `?contract=` vault links. It only trusts the official vault configured in `claim-config.js`.
 - Never put a real private key, seed phrase, passkey, or service-role key in this public repo.
+- `security-guard.js` is loaded on public pages to disable form autocomplete and wipe private-key/seed-phrase-looking values from local or session browser storage.
+- The Supabase `sb_publishable_...` scoreboard key is public by design; keep Supabase RLS enabled and never publish a service-role key.
 - Rabby should show every real deployment, approval, funding, and claim transaction before it is sent.
 - The claim page checks that the vault points to the expected TTWO token before it lets users claim.
 - Test with a tiny TTWO amount before funding a real round.

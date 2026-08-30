@@ -7,7 +7,6 @@ import { tmpdir } from "node:os";
 import { dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import process from "node:process";
-import readline from "node:readline";
 
 const GSA_CONTRACT = "0xb4396384569cf9b00058edb11d6bf12a626e1e18";
 const ROBINHOOD_ASSETS_API = "https://api.robinhood.com/rhj/assets";
@@ -15,12 +14,10 @@ const ROBINHOOD_CHAIN_ID = 4663n;
 const ROBINHOOD_CHAIN_NAME = "Robinhood Chain";
 const DEFAULT_RPC = "https://rpc.mainnet.chain.robinhood.com";
 const DEFAULT_STOCK_SYMBOL = "TTWO";
-const DEFAULT_PRIVATE_KEY_ENV = "GSA_AIRDROP_PRIVATE_KEY";
 const DEFAULT_MIN_GSA_BALANCE = "100000";
 const GSA_DECIMALS = 18;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const DEAD_ADDRESS = "0x000000000000000000000000000000000000dead";
-const REAL_ASSETS_FLAG = "--i-understand-this-transfers-real-assets";
 const HTTP_HEADERS = {
   accept: "application/json",
   "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36 GSAAirdrop/1.0",
@@ -31,7 +28,6 @@ const ERC20_ABI = [
   "function decimals() view returns (uint8)",
   "function symbol() view returns (string)",
   "function name() view returns (string)",
-  "function transfer(address to, uint256 amount) returns (bool)",
 ];
 
 const HELP = `
@@ -39,26 +35,18 @@ GSA -> TTWO Robinhood Chain airdrop tool
 
 Splits TTWO stock-token balance across GSA holders by their GSA holder weight.
 
-Safe default: dry-run only. Nothing is sent unless you pass:
-  --send ${REAL_ASSETS_FLAG}
-
-Never put a private key/passkey into the public website or commit it to GitHub.
-For real sends, provide the key locally with the GSA_AIRDROP_PRIVATE_KEY env var
-or paste it into the hidden terminal prompt.
+Dry-run planner only. It does not ask for wallet secrets or send real assets.
+Use the Rabby claim-vault admin page for real TTWO movement.
 
 Examples:
   node tools/ttwo-airdrop.mjs
   node tools/ttwo-airdrop.mjs --from 0xYourWallet --budget 10
   node tools/ttwo-airdrop.mjs --snapshot snapshots/gsa-airdrop-plan.json --from 0xYourWallet --budget all
 
-  # Real send, local machine only:
-  $env:GSA_AIRDROP_PRIVATE_KEY='0x...'
-  node tools/ttwo-airdrop.mjs --snapshot snapshots/gsa-airdrop-plan.json --budget all --send ${REAL_ASSETS_FLAG}
-
 Options:
   --snapshot <path>           Existing snapshot CSV/JSON from robinhood-holder-snapshot.
                               If omitted, creates a fresh current GSA holder snapshot.
-  --fresh-snapshot            Allow real send with a freshly generated current snapshot.
+  --fresh-snapshot            Allow planning from a freshly generated current snapshot.
   --from <address>            Wallet address to read TTWO balance from in dry-run mode.
   --budget <amount|all>       TTWO amount to split. Default: all.
   --stock-symbol <symbol>     Stock-token symbol to fetch from Robinhood assets. Default: TTWO.
@@ -72,10 +60,7 @@ Options:
   --min-allocation <amount>   Skip recipients below this TTWO allocation.
   --max-recipients <number>   Limit recipients, useful for testing.
   --start-at <rank>           Resume from a plan rank.
-  --confirmations <number>    Confirmations to wait per tx. Default: 1.
-  --no-simulate               Skip pre-send transfer static calls.
   --out <path>                Write plan CSV. Default: snapshots/gsa-ttwo-airdrop-plan-*.csv
-  --receipts <path>           Write send receipts JSON. Default when --send: snapshots/gsa-ttwo-airdrop-receipts-*.json
   --quiet                     Less progress output.
   --help                      Show this help.
 `;
@@ -96,12 +81,7 @@ function parseArgs(argv) {
     minAllocation: "0",
     maxRecipients: Infinity,
     startAt: 1,
-    confirmations: 1,
-    simulate: true,
-    send: false,
-    realAssetsFlag: false,
     out: "",
-    receipts: "",
     quiet: false,
     help: false,
   };
@@ -160,23 +140,11 @@ function parseArgs(argv) {
       case "--start-at":
         options.startAt = parsePositiveInteger(next(), "--start-at");
         break;
-      case "--confirmations":
-        options.confirmations = parseNonNegativeInteger(next(), "--confirmations");
-        break;
-      case "--no-simulate":
-        options.simulate = false;
-        break;
       case "--send":
-        options.send = true;
-        break;
-      case REAL_ASSETS_FLAG:
-        options.realAssetsFlag = true;
+        die("Real sends from this CLI are disabled. Use /claims-admin.html with Rabby and the claim vault.");
         break;
       case "--out":
         options.out = next();
-        break;
-      case "--receipts":
-        options.receipts = next();
         break;
       case "--quiet":
         options.quiet = true;
@@ -200,14 +168,6 @@ function parseArgs(argv) {
 
   for (const address of options.exclude) {
     normalizeAddress(address, "--exclude");
-  }
-
-  if (options.send && !options.realAssetsFlag) {
-    die(`Real sends require ${REAL_ASSETS_FLAG}`);
-  }
-
-  if (options.send && !options.snapshot && !options.freshSnapshot) {
-    die("Real sends require --snapshot, or explicitly add --fresh-snapshot if you want to send from a live current snapshot.");
   }
 
   return options;
@@ -478,66 +438,8 @@ function parseMaybeBoolean(value) {
   return "";
 }
 
-async function readPrivateKey(options) {
-  const envKey = process.env[DEFAULT_PRIVATE_KEY_ENV]?.trim();
-
-  if (envKey) {
-    return envKey;
-  }
-
-  if (!options.send) {
-    return "";
-  }
-
-  if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    die(`Set ${DEFAULT_PRIVATE_KEY_ENV} before sending real assets.`);
-  }
-
-  return readHiddenLine(`Paste sender private key for this local run only: `);
-}
-
-function readHiddenLine(prompt) {
-  return new Promise((resolveSecret) => {
-    const input = process.stdin;
-    const output = process.stdout;
-    let secret = "";
-
-    readline.emitKeypressEvents(input);
-    input.setRawMode(true);
-    output.write(prompt);
-
-    const onKeypress = (char, key) => {
-      if (key?.name === "return" || key?.name === "enter") {
-        input.setRawMode(false);
-        input.off("keypress", onKeypress);
-        output.write("\n");
-        resolveSecret(secret.trim());
-        return;
-      }
-
-      if (key?.name === "backspace") {
-        secret = secret.slice(0, -1);
-        return;
-      }
-
-      if (key?.ctrl && key?.name === "c") {
-        input.setRawMode(false);
-        input.off("keypress", onKeypress);
-        output.write("\n");
-        process.exit(130);
-      }
-
-      if (char) {
-        secret += char;
-      }
-    };
-
-    input.on("keypress", onKeypress);
-  });
-}
-
 async function getWalletAndToken(options, stock, ethers) {
-  const { Contract, JsonRpcProvider, Wallet, getAddress } = ethers;
+  const { Contract, JsonRpcProvider, getAddress } = ethers;
   const provider = new JsonRpcProvider(options.rpc);
   const network = await provider.getNetwork();
 
@@ -545,20 +447,13 @@ async function getWalletAndToken(options, stock, ethers) {
     die(`RPC is chain ID ${network.chainId}; expected ${ROBINHOOD_CHAIN_ID} (${ROBINHOOD_CHAIN_NAME}).`);
   }
 
-  const privateKey = await readPrivateKey(options);
-  const signer = privateKey ? new Wallet(privateKey, provider) : null;
-  const sender = signer ? signer.address.toLowerCase() : options.from;
-
-  if (options.send && !signer) {
-    die(`Set ${DEFAULT_PRIVATE_KEY_ENV} before sending.`);
-  }
+  const sender = options.from;
 
   if (options.budget === "all" && !sender) {
-    die("--budget all needs either --from <address> for dry-run or GSA_AIRDROP_PRIVATE_KEY for real send.");
+    die("--budget all needs --from <address> for dry-run planning.");
   }
 
   const tokenRead = new Contract(stock.address, ERC20_ABI, provider);
-  const token = signer ? tokenRead.connect(signer) : tokenRead;
   const decimals = stock.decimals ?? Number(await tokenRead.decimals());
   const symbol = await tokenRead.symbol().catch(() => stock.symbol);
   const name = await tokenRead.name().catch(() => stock.name);
@@ -572,9 +467,7 @@ async function getWalletAndToken(options, stock, ethers) {
 
   return {
     provider,
-    signer,
     sender: senderChecksum,
-    token,
     tokenRead,
     decimals,
     symbol,
@@ -681,7 +574,7 @@ function buildPlan(rows, options, tokenContext, ethers) {
       minAllocation: options.minAllocation,
       startAt: options.startAt,
       createdAt: new Date().toISOString(),
-      dryRun: !options.send,
+      dryRun: true,
     },
     rows: plan,
   };
@@ -709,79 +602,9 @@ function formatRatio(value, total, multiplier, fractionDigits) {
   return `${integerPart}${fraction ? `.${fraction}` : ""}`;
 }
 
-async function simulatePlan(plan, tokenContext, options) {
-  if (!options.simulate || !options.send || plan.rows.length === 0) {
-    return;
-  }
-
-  log(options, `Simulating ${plan.rows.length} ${tokenContext.symbol} transfers before sending...`);
-
-  for (const row of plan.rows) {
-    const ok = await tokenContext.token.transfer.staticCall(row.address, BigInt(row.stock_allocation_raw)).catch((error) => {
-      throw new Error(`Transfer simulation failed for ${row.address}: ${error.shortMessage || error.message}`);
-    });
-
-    if (ok === false) {
-      die(`Transfer simulation returned false for ${row.address}.`);
-    }
-  }
-}
-
-async function sendPlan(plan, tokenContext, options) {
-  const receipts = [];
-
-  for (const row of plan.rows) {
-    const amount = BigInt(row.stock_allocation_raw);
-
-    try {
-      log(options, `Sending ${row.stock_allocation} ${tokenContext.symbol} to ${row.address}...`);
-      const tx = await tokenContext.token.transfer(row.address, amount);
-      row.status = "sent";
-      row.tx_hash = tx.hash;
-
-      const receipt = await tx.wait(options.confirmations);
-      row.status = receipt?.status === 1 ? "confirmed" : "failed";
-
-      receipts.push({
-        rank: row.rank,
-        address: row.address,
-        amount: row.stock_allocation,
-        amountRaw: row.stock_allocation_raw,
-        txHash: tx.hash,
-        status: row.status,
-        blockNumber: receipt?.blockNumber || "",
-      });
-
-      if (row.status !== "confirmed") {
-        throw new Error(`Transaction ${tx.hash} was not successful.`);
-      }
-    } catch (error) {
-      row.status = "error";
-      row.error = error.shortMessage || error.message || String(error);
-      receipts.push({
-        rank: row.rank,
-        address: row.address,
-        amount: row.stock_allocation,
-        amountRaw: row.stock_allocation_raw,
-        txHash: row.tx_hash,
-        status: row.status,
-        error: row.error,
-      });
-      throw error;
-    }
-  }
-
-  return receipts;
-}
-
 function defaultPlanPath(symbol) {
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   return `snapshots/gsa-${symbol.toLowerCase()}-airdrop-plan-${stamp}.csv`;
-}
-
-function defaultReceiptsPath(symbol) {
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  return `snapshots/gsa-${symbol.toLowerCase()}-airdrop-receipts-${stamp}.json`;
 }
 
 async function writeTextFile(path, content) {
@@ -857,20 +680,9 @@ async function main() {
   const tokenContext = await getWalletAndToken(options, stock, ethers);
   const plan = buildPlan(rows, options, tokenContext, ethers);
   const planPath = await writeTextFile(options.out || defaultPlanPath(plan.meta.stockSymbol), toCsv(plan.rows));
-  let receiptsPath = "";
-
-  if (options.send) {
-    await simulatePlan(plan, tokenContext, options);
-    const receipts = await sendPlan(plan, tokenContext, options);
-    receiptsPath = await writeTextFile(
-      options.receipts || defaultReceiptsPath(plan.meta.stockSymbol),
-      JSON.stringify({ meta: plan.meta, receipts }, null, 2),
-    );
-    await writeTextFile(planPath, toCsv(plan.rows));
-  }
 
   console.log(JSON.stringify({
-    mode: options.send ? "sent" : "dry-run",
+    mode: "dry-run",
     chain: plan.meta.chain,
     sender: plan.meta.sender || undefined,
     stockToken: plan.meta.stockToken,
@@ -882,10 +694,7 @@ async function main() {
     recipients: plan.meta.recipients,
     planCsv: planPath,
     planRowsWithHeader: await countFileLines(planPath),
-    receiptsJson: receiptsPath || undefined,
-    nextStep: options.send
-      ? "Review receipts and confirm every transaction landed."
-      : `Review the CSV. To send real assets, rerun with --send ${REAL_ASSETS_FLAG}.`,
+    nextStep: "Review the CSV. Use /claims-admin.html with Rabby and the claim vault for real TTWO movement.",
   }, null, 2));
 }
 
