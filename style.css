@@ -72,6 +72,58 @@ a { color: inherit; }
   padding: clamp(52px, 8vw, 96px) 0;
 }
 
+.neon-divider {
+  position: relative;
+  z-index: 4;
+  height: clamp(18px, 3.8vw, 34px);
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 22, 139, .28) 12%, rgba(36, 244, 255, .28) 50%, rgba(255, 156, 56, .28) 88%, transparent),
+    linear-gradient(180deg, rgba(5, 9, 22, .92), rgba(16, 7, 32, .98));
+  box-shadow:
+    0 -18px 42px rgba(255, 22, 139, .28),
+    0 18px 42px rgba(36, 244, 255, .24),
+    inset 0 1px rgba(255, 255, 255, .2),
+    inset 0 -1px rgba(255, 255, 255, .12);
+}
+
+.neon-divider::before,
+.neon-divider::after {
+  content: "";
+  position: absolute;
+  left: -8vw;
+  right: -8vw;
+  pointer-events: none;
+}
+
+.neon-divider::before {
+  top: 50%;
+  height: 5px;
+  transform: translateY(-50%);
+  background:
+    linear-gradient(90deg, var(--pink), var(--cyan) 32%, var(--lime) 57%, var(--orange) 78%, var(--pink));
+  border-radius: 999px;
+  box-shadow:
+    0 0 8px rgba(255, 255, 255, .9),
+    0 0 18px rgba(255, 22, 139, .86),
+    0 0 32px rgba(36, 244, 255, .72),
+    0 0 58px rgba(217, 255, 92, .32);
+}
+
+.neon-divider::after {
+  inset-block: 0;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 34px, rgba(255, 255, 255, .18) 34px 36px, transparent 36px 70px),
+    linear-gradient(180deg, transparent 0 32%, rgba(255, 255, 255, .3) 48%, transparent 64%);
+  opacity: .4;
+  mix-blend-mode: screen;
+}
+
+.neon-divider-alt::before {
+  background:
+    linear-gradient(90deg, var(--cyan), var(--blue) 28%, var(--pink) 52%, var(--orange) 78%, var(--cyan));
+}
+
 .scene-img,
 .scene-shade {
   position: absolute;

@@ -34,7 +34,7 @@ The city begins at Heat 01. Every 30 seconds, the heat rises, and loud play adds
 
 Open `index.html` in a modern browser, or serve this folder with any static-file host.
 
-The landing page uses three background art scenes behind the foreground content: `assets/gsa-gator-bg-large.jpg`, `assets/gsa-everglades-lion.jpg`, and `assets/gsa-moon-earth.jpg`. The smaller `assets/gsa-gator-bg.jpg` remains as the first image fallback.
+The landing page uses three background art scenes behind the foreground content: `assets/gsa-gator-bg-large.jpg`, `assets/gsa-everglades-lion.jpg`, and `assets/gsa-moon-earth.jpg`. Glowing neon horizontal dividers separate the scenes as visitors scroll. The smaller `assets/gsa-gator-bg.jpg` remains as the first image fallback.
 
 ## QA smoke test
 

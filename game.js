@@ -1,5 +1,5 @@
 (() => {
-  window.NMR_BUILD = '20260829-backgrounds1';
+  window.NMR_BUILD = '20260829-neondividers1';
   const canvas = document.querySelector('#game');
   if (!canvas.hasAttribute('tabindex')) canvas.tabIndex = 0;
   const ctx = canvas.getContext('2d');
@@ -2314,9 +2314,9 @@
   renderBoard(demoScores);
   reset();
   draw();
-  window.NMR_BOTTOM_REACHED = '20260829-backgrounds1';
-  document.documentElement.dataset.nmrBuild = '20260829-backgrounds1';
-  document.documentElement.dataset.nmrBottomReached = '20260829-backgrounds1';
+  window.NMR_BOTTOM_REACHED = '20260829-neondividers1';
+  document.documentElement.dataset.nmrBuild = '20260829-neondividers1';
+  document.documentElement.dataset.nmrBottomReached = '20260829-neondividers1';
   if (params.has('selftest')) {
     publishSelfTest({
       passed: 0,
