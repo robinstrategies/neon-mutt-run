@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Grand Stock Auto holder snapshot and TTWO stock-token airdrop planner for Rabby wallet." />
+    <title>GSA / TTWO Airdrop Tool</title>
+    <link rel="stylesheet" href="airdrop.css?v=20260830-airdrop1" />
+  </head>
+  <body>
+    <main class="airdrop-app">
+      <section class="panel hero-panel" aria-label="GSA TTWO airdrop tool">
+        <p class="eyebrow">GRAND STOCK AUTO · ROBINHOOD CHAIN</p>
+        <h1>GSA → TTWO Airdrop Tool</h1>
+        <p class="lede">Connect Rabby, snapshot every GSA holder above 100k, then split the TTWO stock-token balance in your wallet pro-rata.</p>
+
+        <div class="quick-grid" aria-label="Contract details">
+          <div>
+            <small>GSA</small>
+            <code>0xb4396384569cf9b00058edb11d6bf12a626e1e18</code>
+          </div>
+          <div>
+            <small>TTWO</small>
+            <code>0x5e81213613b6b86eab4c6c50d718d34359459786</code>
+          </div>
+          <div>
+            <small>Minimum holder balance</small>
+            <strong>100,000 GSA</strong>
+          </div>
+        </div>
+
+        <div class="button-row">
+          <button id="connectButton" class="primary">Connect Rabby Wallet</button>
+          <button id="snapshotButton" class="secondary">Snapshot</button>
+        </div>
+
+        <p id="statusLine" class="status-line" role="status">Wallet not connected.</p>
+      </section>
+
+      <section class="panel controls-panel" aria-label="Snapshot settings">
+        <div class="field">
+          <label for="minBalance">Minimum GSA</label>
+          <input id="minBalance" inputmode="decimal" value="100000" />
+        </div>
+
+        <label class="check">
+          <input id="excludeContracts" type="checkbox" checked />
+          <span>Exclude contract wallets</span>
+        </label>
+
+        <label class="check">
+          <input id="excludeSender" type="checkbox" checked />
+          <span>Exclude connected wallet</span>
+        </label>
+
+        <div class="mini-note">
+          Uses Robinhood Chain RPC directly. No private keys, passkeys, or seed phrases are ever typed into this page.
+        </div>
+      </section>
+
+      <section class="stats-grid" aria-label="Snapshot summary">
+        <article>
+          <small>Connected wallet</small>
+          <strong id="walletStat">—</strong>
+        </article>
+        <article>
+          <small>Wallet TTWO balance</small>
+          <strong id="ttwoStat">—</strong>
+        </article>
+        <article>
+          <small>Eligible holders</small>
+          <strong id="holdersStat">—</strong>
+        </article>
+        <article>
+          <small>Snapshot block</small>
+          <strong id="blockStat">—</strong>
+        </article>
+      </section>
+
+      <section class="panel send-panel" aria-label="Send controls">
+        <div class="send-copy">
+          <p class="eyebrow">SEND MODE</p>
+          <h2>Review first. Send second.</h2>
+          <p>Rabby will ask you to approve transfers. If there are lots of holders, expect lots of wallet prompts.</p>
+        </div>
+
+        <div class="send-controls">
+          <div class="field compact">
+            <label for="startRank">Start rank</label>
+            <input id="startRank" inputmode="numeric" value="1" />
+          </div>
+          <div class="field compact">
+            <label for="maxTransfers">Max transfers</label>
+            <input id="maxTransfers" inputmode="numeric" placeholder="All" />
+          </div>
+          <label class="check danger-check">
+            <input id="realSendConfirm" type="checkbox" />
+            <span>I understand this sends real TTWO stock-tokens.</span>
+          </label>
+          <div class="button-row">
+            <button id="sendButton" class="danger" disabled>Send TTWO Airdrop</button>
+            <button id="stopButton" class="ghost" disabled>Stop</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel table-panel" aria-label="Holder snapshot table">
+        <div class="table-top">
+          <div>
+            <p class="eyebrow">SNAPSHOT OUTPUT</p>
+            <h2>Eligible holders</h2>
+          </div>
+          <button id="downloadCsv" class="ghost" disabled>Download CSV</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Address</th>
+                <th>GSA</th>
+                <th>Share</th>
+                <th>TTWO</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="holderRows">
+              <tr>
+                <td colspan="6" class="empty">Connect wallet, then press Snapshot.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="airdrop.js?v=20260830-airdrop1"></script>
+  </body>
+</html>

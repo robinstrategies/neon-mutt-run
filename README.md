@@ -140,6 +140,18 @@ The tool auto-finds TTWO on Robinhood Chain from Robinhood's public assets API. 
 
 Do not put private keys, seed phrases, passkeys, or wallet secrets into the public website. The real sender is intentionally local-only, dry-run by default, and requires an explicit real-assets flag before it broadcasts transfers.
 
+## Browser Rabby airdrop page
+
+Open `/airdrop.html` on the deployed site or local static server.
+
+- Connect Rabby.
+- Press **Snapshot**.
+- Review all wallets holding at least `100000` GSA.
+- Download the CSV if you want a record.
+- Check the real-send box and press **Send TTWO Airdrop** only when ready.
+
+The browser page never asks for a private key. It uses Rabby wallet approvals for TTWO transfers. Large airdrops may require one wallet prompt per recipient.
+
 ## Publish free/cheap
 
 Push this repository to a public GitHub repository. GitHub Pages, Cloudflare Pages, and Netlify can all host the static files inexpensively. Point a custom domain at the host when you have one.
