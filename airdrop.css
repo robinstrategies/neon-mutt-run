@@ -44,7 +44,8 @@ body::before {
 }
 
 button,
-input { font: inherit; }
+input,
+textarea { font: inherit; }
 
 button {
   border: 0;
@@ -240,9 +241,9 @@ h2 {
   letter-spacing: .6px;
 }
 
-input {
+input,
+textarea {
   width: 190px;
-  min-height: 46px;
   border: 1px solid rgba(36, 244, 255, .38);
   border-radius: 12px;
   color: var(--cream);
@@ -251,7 +252,19 @@ input {
   outline: none;
 }
 
-input:focus {
+input {
+  min-height: 46px;
+}
+
+textarea {
+  width: 100%;
+  min-height: 88px;
+  padding: 12px 13px;
+  resize: vertical;
+}
+
+input:focus,
+textarea:focus {
   border-color: var(--cyan);
   box-shadow: 0 0 0 3px rgba(36, 244, 255, .16);
 }
@@ -279,7 +292,8 @@ input[type="checkbox"] {
   flex: 2 1 360px;
 }
 
-.wide-field input {
+.wide-field input,
+.wide-field textarea {
   width: 100%;
 }
 

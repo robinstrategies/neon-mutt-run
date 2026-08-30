@@ -21,7 +21,7 @@
       approve: "0x095ea7b3",
       allowance: "0xdd62ed3e",
       balanceOf: "0x70a08231",
-      createRound: "0x750fe38a",
+      createRound: "0xccd64281",
       setAllocations: "0x30c82017",
       fundRound: "0x4b361a24",
       openRound: "0xbde22ae0",
@@ -75,10 +75,13 @@
     $("#snapshotButton").addEventListener("click", () => runSnapshot().catch(handleError));
     $("#publishRoundButton").addEventListener("click", () => publishClaimRound().catch(handleError));
     $("#downloadCsv").addEventListener("click", downloadCsv);
+    $("#downloadManifest").addEventListener("click", () => downloadManifest().catch(handleError));
     $("#copyClaimLink").addEventListener("click", copyClaimLink);
     $("#realSendConfirm").addEventListener("change", updatePublishAvailability);
     $("#vaultAddress").addEventListener("input", updateClaimLink);
     $("#roundId").addEventListener("input", updateClaimLink);
+    $("#blockedWallets").value = localStorage.getItem("gsaBlockedWallets") || "";
+    $("#blockedWallets").addEventListener("change", saveBlockedWallets);
     $("#ttwoBudget").addEventListener("change", () => {
       if (state.snapshot) setStatus("work", "TTWO amount changed. Press Snapshot again to rebuild allocations.");
     });
@@ -170,6 +173,8 @@
       const allocations = new Map(rows.map((row) => [row.address, row.ttwoRaw]));
       mockRounds.set(roundId.toString(), {
         snapshotHash: "0x" + "a".repeat(64),
+        snapshotBlock: mockBlock,
+        allocationCount: rows.length,
         totalAllocated: rows.reduce((sum, row) => sum + row.ttwoRaw, 0n),
         funded: mockTtwoWalletBalance,
         claimed: 0n,
@@ -185,6 +190,8 @@
       if (!mockRounds.has(key)) {
         mockRounds.set(key, {
           snapshotHash: "0x" + "0".repeat(64),
+          snapshotBlock: 0n,
+          allocationCount: 0,
           totalAllocated: 0n,
           funded: 0n,
           claimed: 0n,
@@ -263,6 +270,8 @@
             const round = getRound(roundId);
             return encodeStaticReturn([
               round.snapshotHash,
+              round.snapshotBlock,
+              BigInt(round.allocationCount),
               round.totalAllocated,
               round.funded,
               round.claimed,
@@ -300,6 +309,7 @@
             const roundId = readWord(data, 0);
             const round = getRound(roundId);
             round.snapshotHash = `0x${wordAt(data, 1)}`;
+            round.snapshotBlock = readWord(data, 2);
             round.exists = true;
           }
 
@@ -312,6 +322,7 @@
             for (let index = 0; index < accounts.length; index += 1) {
               round.allocations.set(accounts[index], amounts[index]);
             }
+            round.allocationCount = round.allocations.size;
             round.totalAllocated = Array.from(round.allocations.values()).reduce((sum, amount) => sum + amount, 0n);
           }
 
@@ -443,11 +454,16 @@
       const currentBlock = hexToBigInt(await chainCall("eth_blockNumber", []));
       setAdminStats({ block: currentBlock.toString() });
       const balances = await buildHolderBalances(currentBlock);
+      const blockedWallets = parseAddressList($("#blockedWallets").value);
 
       let holders = Array.from(balances.entries())
         .map(([address, balanceRaw]) => ({ address, balanceRaw }))
         .filter((holder) => holder.balanceRaw >= minRaw)
         .filter((holder) => !isBurnAddress(holder.address));
+
+      if (blockedWallets.size) {
+        holders = holders.filter((holder) => !blockedWallets.has(holder.address));
+      }
 
       if ($("#excludeSender").checked) {
         holders = holders.filter((holder) => holder.address !== state.account);
@@ -469,6 +485,7 @@
         walletTtwoBalanceRaw,
         ttwoBalanceRaw: ttwoBudgetRaw,
         totalGsaRaw,
+        blockedWallets: Array.from(blockedWallets).sort(),
         rows,
         createdAt: new Date().toISOString(),
       };
@@ -514,7 +531,7 @@
 
       if (!round.exists) {
         setStatus("work", "Approve createRound in Rabby.");
-        await sendAndWait(vault, encodeCreateRound(roundId, snapshotHash, `GSA TTWO ${roundId.toString()}`));
+        await sendAndWait(vault, encodeCreateRound(roundId, snapshotHash, state.snapshot.block, `GSA TTWO ${roundId.toString()}`));
       }
 
       const rows = state.snapshot.rows.filter((row) => row.ttwoRaw > 0n);
@@ -706,14 +723,16 @@
 
   async function readRoundStatus(vault, roundId) {
     const data = await chainCall("eth_call", [{ to: vault, data: encodeRoundStatus(roundId) }, "latest"]);
-    const chunks = staticChunks(data, 6);
+    const chunks = staticChunks(data, 8);
     return {
       snapshotHash: `0x${chunks[0]}`,
-      totalAllocated: BigInt(`0x${chunks[1]}`),
-      funded: BigInt(`0x${chunks[2]}`),
-      claimed: BigInt(`0x${chunks[3]}`),
-      claimsOpen: BigInt(`0x${chunks[4]}`) === 1n,
-      exists: BigInt(`0x${chunks[5]}`) === 1n,
+      snapshotBlock: BigInt(`0x${chunks[1]}`),
+      allocationCount: Number(BigInt(`0x${chunks[2]}`)),
+      totalAllocated: BigInt(`0x${chunks[3]}`),
+      funded: BigInt(`0x${chunks[4]}`),
+      claimed: BigInt(`0x${chunks[5]}`),
+      claimsOpen: BigInt(`0x${chunks[6]}`) === 1n,
+      exists: BigInt(`0x${chunks[7]}`) === 1n,
     };
   }
 
@@ -785,8 +804,8 @@
     return response.json();
   }
 
-  function encodeCreateRound(roundId, snapshotHash, label) {
-    return `${CONFIG.selectors.createRound}${encodeUint256(roundId)}${normalizeBytes32(snapshotHash).slice(2)}${encodeUint256(96n)}${encodeStringTail(label)}`;
+  function encodeCreateRound(roundId, snapshotHash, snapshotBlock, label) {
+    return `${CONFIG.selectors.createRound}${encodeUint256(roundId)}${normalizeBytes32(snapshotHash).slice(2)}${encodeUint256(snapshotBlock)}${encodeUint256(128n)}${encodeStringTail(label)}`;
   }
 
   function encodeSetAllocations(roundId, accounts, amounts) {
@@ -899,6 +918,10 @@
       row.ttwoRaw.toString(),
     ].join(":")).join("|");
     const payload = `${roundId.toString()}|${snapshot.account}|${snapshot.block.toString()}|${stable}`;
+    return sha256Hex(payload);
+  }
+
+  async function sha256Hex(payload) {
     const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(payload));
     return `0x${Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
   }
@@ -960,6 +983,13 @@
     if (amountStat) amountStat.textContent = "—";
     if (fundedStat) fundedStat.textContent = "—";
     updateHolderAvailability();
+  }
+
+  function saveBlockedWallets() {
+    const blocked = Array.from(parseAddressList($("#blockedWallets").value)).sort();
+    $("#blockedWallets").value = blocked.join("\n");
+    localStorage.setItem("gsaBlockedWallets", $("#blockedWallets").value);
+    if (blocked.length) setStatus("good", `Saved ${blocked.length.toLocaleString()} blocked wallet${blocked.length === 1 ? "" : "s"}.`);
   }
 
   function saveVaultAddress(options = {}) {
@@ -1036,6 +1066,8 @@
     );
     const download = $("#downloadCsv");
     if (download) download.disabled = !state.snapshot?.rows?.length || state.busy;
+    const manifest = $("#downloadManifest");
+    if (manifest) manifest.disabled = !state.snapshot?.rows?.length || state.busy;
   }
 
   function renderEmpty(message) {
@@ -1088,6 +1120,8 @@
     state.csvUrl = URL.createObjectURL(blob);
     const button = $("#downloadCsv");
     if (button) button.disabled = false;
+    const manifestButton = $("#downloadManifest");
+    if (manifestButton) manifestButton.disabled = false;
   }
 
   function clearCsvUrl() {
@@ -1095,6 +1129,8 @@
     state.csvUrl = "";
     const button = $("#downloadCsv");
     if (button) button.disabled = true;
+    const manifestButton = $("#downloadManifest");
+    if (manifestButton) manifestButton.disabled = true;
   }
 
   function downloadCsv() {
@@ -1106,6 +1142,42 @@
     document.body.appendChild(link);
     link.click();
     link.remove();
+  }
+
+  async function downloadManifest() {
+    if (!state.snapshot?.rows?.length) return;
+    const roundId = parsePositiveBigInt($("#roundId").value, "Round ID");
+    const csv = snapshotToCsv(state.snapshot);
+    const manifest = {
+      name: "GSA TTWO Daily Claim Snapshot",
+      chain: CONFIG.chainName,
+      chainId: CONFIG.chainIdHex,
+      gsaContract: CONFIG.gsaContract,
+      ttwoContract: CONFIG.ttwoContract,
+      claimVault: normalizeAddressSoft($("#vaultAddress").value) || null,
+      roundId: roundId.toString(),
+      snapshotBlock: state.snapshot.block.toString(),
+      snapshotHash: await snapshotDigest(state.snapshot, roundId),
+      csvSha256: await sha256Hex(csv),
+      ownerWallet: state.snapshot.account,
+      minGsa: formatUnits(state.snapshot.minRaw, CONFIG.gsaDecimals, 18),
+      holderCount: state.snapshot.rows.length,
+      totalGsaRaw: state.snapshot.totalGsaRaw.toString(),
+      totalTtwoRaw: state.snapshot.ttwoBalanceRaw.toString(),
+      blockedWallets: state.snapshot.blockedWallets || [],
+      excludeContracts: $("#excludeContracts").checked,
+      excludeOwnerWallet: $("#excludeSender").checked,
+      createdAt: state.snapshot.createdAt,
+    };
+    const blob = new Blob([`${JSON.stringify(manifest, null, 2)}\n`], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `gsa-ttwo-claim-round-${roundId.toString()}-manifest.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   }
 
   function snapshotToCsv(snapshot) {
@@ -1140,6 +1212,18 @@
   function csvCell(value) {
     const text = String(value ?? "");
     return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  }
+
+  function parseAddressList(value) {
+    const addresses = String(value || "")
+      .split(/[\s,;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const parsed = new Set();
+    for (const address of addresses) {
+      parsed.add(normalizeAddress(address));
+    }
+    return parsed;
   }
 
   function parseUnits(value, decimals) {

@@ -165,10 +165,12 @@ Daily owner flow:
 1. Claim fees on long.xyz so TTWO lands in the owner wallet.
 2. Open `/claims-admin.html` and connect Rabby.
 3. Deploy the claim vault once, or paste the existing vault address.
-4. Enter a **TTWO to fund** amount, or leave it blank to use the full connected wallet TTWO balance.
-5. Press **Snapshot**.
-6. Press **Create / Fund / Open Round**.
-7. Share the generated `/claim.html?contract=...&round=...` link.
+4. Paste any known scam wallets into **Blocked wallets**.
+5. Enter a **TTWO to fund** amount, or leave it blank to use the full connected wallet TTWO balance.
+6. Press **Snapshot**.
+7. Download the CSV and Manifest for your daily record.
+8. Press **Create / Fund / Open Round**.
+9. Share the generated `/claim.html?contract=...&round=...` link.
 
 The holder flow is just connect Rabby, check claim, then claim TTWO. The vault prevents double-claims. The page excludes wallets under `100000` GSA by default.
 
@@ -176,6 +178,9 @@ For the main landing-page **Claim TTWO** button to work without a daily link, de
 
 Security notes:
 
+- The approved wallet list is stored on-chain in the claim vault as `allocations[roundId][wallet]`.
+- Each daily round stores its snapshot block, snapshot hash, and allocation count on-chain.
+- The downloaded manifest records the same daily snapshot details plus the CSV hash and blocked wallets used.
 - Never put a real private key, seed phrase, passkey, or service-role key in this public repo.
 - Rabby should show every real deployment, approval, funding, and claim transaction before it is sent.
 - The claim page checks that the vault points to the expected TTWO token before it lets users claim.
