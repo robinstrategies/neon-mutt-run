@@ -34,7 +34,7 @@ The city begins at Heat 01. Every 30 seconds, the heat rises, and loud play adds
 
 Open `index.html` in a modern browser, or serve this folder with any static-file host.
 
-The landing page uses `assets/gsa-gator-bg.jpg` as the hero background.
+The landing page uses `assets/gsa-gator-bg-large.jpg` as the sharper scrolling hero/page background, with `assets/gsa-gator-bg.jpg` kept as the smaller source/fallback.
 
 ## QA smoke test
 
