@@ -69,10 +69,11 @@ a { color: inherit; }
 }
 
 .hero-bg {
-  background-image: url("assets/gsa-gator-bg.jpg");
-  background-size: cover;
-  background-position: center;
-  transform: scale(1.02);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform: none;
   filter: saturate(1.22) contrast(1.08);
 }
 
@@ -610,7 +611,7 @@ dialog button {
   }
 
   .hero-bg {
-    background-position: 47% center;
+    object-position: 47% center;
   }
 
   .hero-content {
