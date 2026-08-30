@@ -134,14 +134,20 @@ contract GsaTtwoDailyClaimVault {
         Round storage round = _round(roundId);
         if (amount == 0) revert BadRound();
 
-        uint256 newFunded = round.funded + amount;
+        if (round.funded + amount > round.totalAllocated) revert Overfunded();
+
+        uint256 beforeBalance = ttwo.balanceOf(address(this));
+        _safeTransferFrom(address(ttwo), msg.sender, address(this), amount);
+        uint256 received = ttwo.balanceOf(address(this)) - beforeBalance;
+        if (received == 0) revert BadRound();
+
+        uint256 newFunded = round.funded + received;
         if (newFunded > round.totalAllocated) revert Overfunded();
 
-        _safeTransferFrom(address(ttwo), msg.sender, address(this), amount);
         round.funded = newFunded;
-        reservedTtwo += amount;
+        reservedTtwo += received;
 
-        emit RoundFunded(roundId, amount, newFunded);
+        emit RoundFunded(roundId, received, newFunded);
 
         if (openAfterFunding) {
             _openRound(roundId, round);
