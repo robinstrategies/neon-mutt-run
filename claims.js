@@ -115,6 +115,48 @@
       setStatus("bad", "No live claim round is set yet. Use the daily claim link when it is posted.");
     }
     updateHolderAvailability();
+
+    if (isMockWallet() && new URLSearchParams(window.location.search).get("selftest") === "doubleclaim") {
+      setTimeout(runDoubleClaimSelfTest, 0);
+    }
+  }
+
+  async function runDoubleClaimSelfTest() {
+    const results = [];
+    const assert = (name, ok, details = "") => {
+      results.push({ name, ok: Boolean(ok), details });
+    };
+
+    try {
+      await connectWallet();
+      await checkClaim();
+      const vault = normalizeAddress($("#vaultAddress").value);
+      const roundId = parsePositiveBigInt($("#roundId").value, "Round ID");
+      const before = await readClaimable(vault, roundId, state.account);
+      assert("mock holder starts with a claimable allocation", before > 0n, formatUnits(before, CONFIG.ttwoDecimals, 8));
+
+      await claimTtwo();
+      const afterFirst = await readClaimable(vault, roundId, state.account);
+      assert("first claim drains the holder allocation", afterFirst === 0n, formatUnits(afterFirst, CONFIG.ttwoDecimals, 8));
+
+      let secondRejected = false;
+      let secondMessage = "";
+      try {
+        await claimTtwo();
+      } catch (error) {
+        secondMessage = error?.message || String(error);
+        secondRejected = /nothing to claim/i.test(secondMessage);
+      }
+      assert("second claim in the same round is rejected", secondRejected, secondMessage);
+      assert("claim button remains disabled after claiming", $("#claimButton").disabled, String($("#claimButton").disabled));
+    } catch (error) {
+      results.push({ name: "double-claim self-test exception", ok: false, details: error?.stack || error?.message || String(error) });
+    } finally {
+      const passed = results.filter((result) => result.ok).length;
+      const payload = { passed, total: results.length, rate: results.length ? passed / results.length : 0, results };
+      window.GSA_CLAIM_SELFTEST_RESULTS = payload;
+      document.documentElement.dataset.gsaClaimSelftest = JSON.stringify(payload);
+    }
   }
 
   function listenForWalletProviders() {
@@ -366,9 +408,11 @@
             const roundId = readWord(data, 0);
             const from = normalizeAddressSoft(tx.from) || mockAccount;
             const round = getRound(roundId);
+            if (!round.open) throw new Error("ClaimsNotOpen");
             const allocation = round.allocations.get(from) || 0n;
             const previous = round.claimedBy.get(from) || 0n;
-            const due = allocation > previous ? allocation - previous : 0n;
+            if (allocation <= previous) throw new Error("NothingToClaim");
+            const due = allocation - previous;
             round.claimedBy.set(from, allocation);
             round.claimed += due;
           }
@@ -630,6 +674,7 @@
   }
 
   async function claimTtwo() {
+    if (state.busy) return;
     if (!state.account) await connectWallet();
     const vault = normalizeAddress($("#vaultAddress").value);
 
@@ -639,6 +684,8 @@
       await assertClaimVault(vault);
       await resolveLatestRoundIfNeeded(vault);
       const roundId = parsePositiveBigInt($("#roundId").value, "Round ID");
+      const amount = await readClaimable(vault, roundId, state.account);
+      if (amount <= 0n) throw new Error("Nothing to claim for this wallet in this round.");
       setStatus("work", "Approve the claim transaction in Rabby.");
       await sendAndWait(vault, encodeClaim(roundId));
       await checkClaim();

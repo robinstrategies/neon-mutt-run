@@ -173,6 +173,7 @@ For the main landing-page **Claim TTWO** button to work without a daily link, de
 Security notes:
 
 - The approved wallet list is stored on-chain in the claim vault as `allocations[roundId][wallet]`.
+- Each wallet can claim only once per daily round/snapshot; the vault records `claimed[roundId][wallet]` before sending TTWO and rejects repeat claims.
 - Each daily round stores its snapshot block, snapshot block hash, snapshot hash, and allocation count on-chain.
 - The downloaded manifest records the same daily snapshot details plus the CSV hash and blocked wallets used.
 - The snapshot uses a short block-confirmation buffer and verifies balances/contracts at the same block it records.
