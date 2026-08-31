@@ -971,7 +971,14 @@
 
   async function chainCall(method, params) {
     if (!state.provider) throw new Error("Connect Rabby first.");
-    return state.provider.request({ method, params });
+    if (isMockWallet() || !isReadOnlyRpcMethod(method)) return state.provider.request({ method, params });
+
+    try {
+      return await state.provider.request({ method, params });
+    } catch (error) {
+      console.warn(`Wallet RPC ${method} failed; retrying public RPC.`, error);
+      return publicRpcCall(method, params);
+    }
   }
 
   async function chainBatch(calls) {
@@ -986,10 +993,19 @@
     if (isMockWallet()) return state.provider.request({ method, params });
     try {
       return await publicRpcCall(method, params);
-    } catch (error) {
-      const message = error?.message || String(error);
-      throw new Error(`Snapshot log scan was blocked by the RPC (${message}). The explorer holder snapshot is preferred; retry in a minute if the explorer fallback was unavailable.`);
+    } catch (publicError) {
+      try {
+        return await state.provider.request({ method, params });
+      } catch (walletError) {
+        const publicMessage = publicError?.message || String(publicError);
+        const walletMessage = walletError?.message || String(walletError);
+        throw new Error(`Snapshot log scan was blocked by both RPC paths. Public: ${publicMessage}. Wallet: ${walletMessage}. Retry in a minute; the explorer holder snapshot is the normal path.`);
+      }
     }
+  }
+
+  function isReadOnlyRpcMethod(method) {
+    return ["eth_blockNumber", "eth_getBlockByNumber", "eth_call", "eth_getCode"].includes(method);
   }
 
   async function publicRpcCall(method, params) {
@@ -1234,7 +1250,6 @@
     const params = new URLSearchParams(window.location.search);
     const fromConfig = normalizeAddressSoft(window.GSA_CLAIMS_CONFIG?.claimVaultAddress);
     if (fromConfig) return fromConfig;
-    if (state.page === "holder" && !isLocalHost()) return "";
     const fromUrl = normalizeAddressSoft(params.get("contract"));
     if (fromUrl) return fromUrl;
     const fromStorage = normalizeAddressSoft(localStorage.getItem("gsaClaimVault"));

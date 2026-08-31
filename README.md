@@ -168,7 +168,7 @@ Daily owner flow:
 
 The holder flow is just connect Rabby, check claim, then claim TTWO. The vault prevents double-claims. The page excludes wallets under `100000` GSA by default.
 
-For the main landing-page **Claim TTWO** button to work without a daily link, deploy the vault once and put that vault address in `claim-config.js`. After that, the claim page auto-loads the latest open round from the vault.
+For the main landing-page **Claim TTWO** button to work without a daily link, deploy the vault once and put that vault address in `claim-config.js`. After that, the claim page auto-loads the latest open round from the vault. Daily claim links can also include `?contract=...&round=...`; the claim page still checks the vault code and TTWO token before enabling a claim.
 
 Security notes:
 
@@ -177,9 +177,9 @@ Security notes:
 - Each snapshot hash can only be used once, so the same snapshot cannot be republished under a second round ID.
 - Each daily round stores its snapshot block, snapshot block hash, snapshot hash, and allocation count on-chain.
 - The downloaded manifest records the same daily snapshot details plus the CSV hash and blocked wallets used.
-- The snapshot uses a short block-confirmation buffer and verifies balances/contracts at the same block it records.
+- The browser snapshot uses the explorer holder list first to avoid wallet/RPC 403 blocks. The raw-log fallback uses a short block-confirmation buffer and verifies balances/contracts at the same block it records.
 - The admin page checks that the pasted vault uses the official compiled claim-vault bytecode before asking Rabby to approve TTWO.
-- The public holder claim page on production ignores random `?contract=` vault links. It only trusts the official vault configured in `claim-config.js`.
+- The public holder claim page checks pasted or linked vaults against the official compiled claim-vault bytecode and expected TTWO token before it lets users claim.
 - Never put a real private key, seed phrase, passkey, or service-role key in this public repo.
 - `security-guard.js` is loaded on public pages to disable form autocomplete and wipe private-key/seed-phrase-looking values from local or session browser storage.
 - The Supabase `sb_publishable_...` scoreboard key is public by design; keep Supabase RLS enabled and never publish a service-role key.

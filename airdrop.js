@@ -450,7 +450,12 @@
 
   async function chainCall(method, params) {
     if (state.provider) {
-      return state.provider.request({ method, params });
+      if (isMockWallet() || !isReadOnlyRpcMethod(method)) return state.provider.request({ method, params });
+      try {
+        return await state.provider.request({ method, params });
+      } catch (error) {
+        console.warn(`Wallet RPC ${method} failed; retrying public RPC.`, error);
+      }
     }
 
     const response = await fetch(CONFIG.rpcUrl, {
@@ -467,7 +472,7 @@
     if (state.provider) {
       const results = [];
       for (const call of calls) {
-        results.push(await state.provider.request({ method: call.method, params: call.params }));
+        results.push(await chainCall(call.method, call.params));
       }
       return results;
     }
@@ -496,10 +501,19 @@
     if (isMockWallet()) return state.provider.request({ method, params });
     try {
       return await publicRpcCall(method, params);
-    } catch (error) {
-      const message = error?.message || String(error);
-      throw new Error(`Snapshot log scan was blocked by the RPC (${message}). The explorer holder snapshot is preferred; retry in a minute if the explorer fallback was unavailable.`);
+    } catch (publicError) {
+      try {
+        return await state.provider.request({ method, params });
+      } catch (walletError) {
+        const publicMessage = publicError?.message || String(publicError);
+        const walletMessage = walletError?.message || String(walletError);
+        throw new Error(`Snapshot log scan was blocked by both RPC paths. Public: ${publicMessage}. Wallet: ${walletMessage}. Retry in a minute; the explorer holder snapshot is the normal path.`);
+      }
     }
+  }
+
+  function isReadOnlyRpcMethod(method) {
+    return ["eth_blockNumber", "eth_call", "eth_getCode"].includes(method);
   }
 
   async function publicRpcCall(method, params) {
