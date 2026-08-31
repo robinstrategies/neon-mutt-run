@@ -14,6 +14,8 @@
     gsaFromBlock: 49_987_000n,
     snapshotConfirmations: 12n,
     logChunkSize: 10_000n,
+    blockscoutMaxPages: 250,
+    blockscoutPageDelayMs: 120,
     rpcBatchSize: 60,
     transferTopic: "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
     zeroAddress: "0x0000000000000000000000000000000000000000",
@@ -711,6 +713,56 @@
   }
 
   async function buildHolderBalances(currentBlock) {
+    if (!isMockWallet()) {
+      try {
+        return await buildHolderBalancesFromBlockscout(currentBlock);
+      } catch (error) {
+        console.warn("Blockscout holder snapshot failed; falling back to direct RPC logs.", error);
+        setStatus("work", "Explorer snapshot was blocked. Trying direct RPC logs...");
+      }
+    }
+
+    return buildHolderBalancesFromTransferLogs(currentBlock);
+  }
+
+  async function buildHolderBalancesFromBlockscout(snapshotBlock) {
+    const balances = new Map();
+    let page = 0;
+    let nextParams = null;
+
+    do {
+      page += 1;
+      const url = new URL(`${CONFIG.explorerUrl}/api/v2/tokens/${CONFIG.gsaContract}/holders`);
+
+      if (nextParams) {
+        for (const [key, value] of Object.entries(nextParams)) {
+          if (value !== null && value !== undefined) url.searchParams.set(key, String(value));
+        }
+      }
+
+      setStatus("work", `Reading holder list from explorer: page ${page}...`);
+      const data = await fetchJson(url.href);
+      const items = Array.isArray(data.items) ? data.items : [];
+
+      for (const item of items) {
+        const address = blockscoutHolderAddress(item);
+        if (!address) continue;
+        const balanceRaw = parseRawBigInt(item.value || item.balance || item.token?.value || "0");
+        if (balanceRaw > 0n) balances.set(address, balanceRaw);
+      }
+
+      nextParams = data.next_page_params || null;
+      if (nextParams) await delay(CONFIG.blockscoutPageDelayMs);
+    } while (nextParams && page < CONFIG.blockscoutMaxPages);
+
+    if (!balances.size) throw new Error("Explorer returned no GSA holders.");
+    if (nextParams) throw new Error("Explorer holder list is too large for this browser snapshot.");
+
+    setStatus("work", `Loaded ${balances.size.toLocaleString()} explorer holders.`);
+    return balances;
+  }
+
+  async function buildHolderBalancesFromTransferLogs(currentBlock) {
     const balances = new Map();
     let from = CONFIG.gsaFromBlock;
     const to = currentBlock;
@@ -719,7 +771,7 @@
     while (from <= to) {
       const chunkTo = from + CONFIG.logChunkSize - 1n > to ? to : from + CONFIG.logChunkSize - 1n;
       setStatus("work", `Reading GSA logs: blocks ${from.toString()}–${chunkTo.toString()}...`);
-      const logs = await chainCall("eth_getLogs", [{
+      const logs = await snapshotRpcCall("eth_getLogs", [{
         fromBlock: toQuantityHex(from),
         toBlock: toQuantityHex(chunkTo),
         address: CONFIG.gsaContract,
@@ -732,6 +784,16 @@
 
     setStatus("work", `Processed ${logCount.toLocaleString()} GSA transfers. Verifying current balances...`);
     return verifyPositiveBalances(balances, currentBlock);
+  }
+
+  function blockscoutHolderAddress(item) {
+    return normalizeAddressSoft(
+      item?.address?.hash ||
+      item?.address_hash?.hash ||
+      item?.address_hash ||
+      item?.holder?.hash ||
+      item?.holder_address_hash
+    );
   }
 
   async function verifyPositiveBalances(balances, snapshotBlock) {
@@ -920,6 +982,48 @@
     return results;
   }
 
+  async function snapshotRpcCall(method, params) {
+    if (isMockWallet()) return state.provider.request({ method, params });
+    try {
+      return await publicRpcCall(method, params);
+    } catch (error) {
+      const message = error?.message || String(error);
+      throw new Error(`Snapshot log scan was blocked by the RPC (${message}). The explorer holder snapshot is preferred; retry in a minute if the explorer fallback was unavailable.`);
+    }
+  }
+
+  async function publicRpcCall(method, params) {
+    const response = await fetch(CONFIG.rpcUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+    });
+    const payload = await readJsonResponse(response, "Robinhood RPC request");
+    if (payload.error) throw new Error(payload.error.message || "Robinhood RPC error");
+    return payload.result;
+  }
+
+  async function publicRpcBatch(calls) {
+    const payload = calls.map((call, index) => ({
+      jsonrpc: "2.0",
+      id: index + 1,
+      method: call.method,
+      params: call.params,
+    }));
+    const response = await fetch(CONFIG.rpcUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const results = await readJsonResponse(response, "Robinhood RPC batch");
+    if (!Array.isArray(results)) throw new Error("Robinhood RPC batch returned an unexpected response.");
+    return payload.map((item) => {
+      const result = results.find((entry) => entry.id === item.id);
+      if (result?.error) throw new Error(result.error.message || "Robinhood RPC batch error");
+      return result?.result || "0x";
+    });
+  }
+
   async function sendAndWait(to, data) {
     const txHash = await state.provider.request({
       method: "eth_sendTransaction",
@@ -942,8 +1046,20 @@
 
   async function fetchJson(url) {
     const response = await fetch(url);
-    if (!response.ok) throw new Error(`Could not load ${url}.`);
-    return response.json();
+    return readJsonResponse(response, `Could not load ${url}`);
+  }
+
+  async function readJsonResponse(response, label) {
+    const text = await response.text();
+    if (!response.ok) {
+      const details = text ? `: ${text.slice(0, 160)}` : "";
+      throw new Error(`${label} failed with HTTP ${response.status}${details}`);
+    }
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error(`${label} returned invalid JSON.`);
+    }
   }
 
   function encodeCreateRound(roundId, snapshotHash, snapshotBlock, snapshotBlockHash, label) {
@@ -1023,6 +1139,14 @@
 
   function readWord(data, index) {
     return BigInt(`0x${wordAt(data, index)}`);
+  }
+
+  function parseRawBigInt(value) {
+    try {
+      return BigInt(String(value || "0"));
+    } catch {
+      return 0n;
+    }
   }
 
   function readAddressWord(data, index) {
