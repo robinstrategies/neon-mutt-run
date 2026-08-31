@@ -16,6 +16,7 @@ contract GsaTtwoDailyClaimVault {
     error BadArray();
     error BadRound();
     error RoundExists();
+    error SnapshotAlreadyUsed();
     error RoundMissing();
     error ClaimsAlreadyOpen();
     error ClaimsNotOpen();
@@ -48,6 +49,7 @@ contract GsaTtwoDailyClaimVault {
     mapping(uint256 => Round) private _rounds;
     mapping(uint256 => mapping(address => uint256)) public allocations;
     mapping(uint256 => mapping(address => uint256)) public claimed;
+    mapping(bytes32 => bool) public snapshotHashUsed;
 
     uint256 private _locked;
 
@@ -87,14 +89,16 @@ contract GsaTtwoDailyClaimVault {
     }
 
     function createRound(uint256 roundId, bytes32 snapshotHash, uint256 snapshotBlock, bytes32 snapshotBlockHash, string calldata label) external onlyOwner {
-        if (roundId == 0 || snapshotBlock == 0 || snapshotBlockHash == bytes32(0)) revert BadRound();
+        if (roundId == 0 || snapshotHash == bytes32(0) || snapshotBlock == 0 || snapshotBlockHash == bytes32(0)) revert BadRound();
         if (_rounds[roundId].exists) revert RoundExists();
+        if (snapshotHashUsed[snapshotHash]) revert SnapshotAlreadyUsed();
 
         _rounds[roundId].snapshotHash = snapshotHash;
         _rounds[roundId].snapshotBlock = snapshotBlock;
         _rounds[roundId].snapshotBlockHash = snapshotBlockHash;
         _rounds[roundId].exists = true;
         _rounds[roundId].label = label;
+        snapshotHashUsed[snapshotHash] = true;
         if (roundId > latestRoundId) {
             latestRoundId = roundId;
         }

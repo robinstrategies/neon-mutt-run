@@ -32,6 +32,7 @@
       ttwo: "0x4824103c",
       owner: "0x8da5cb5b",
       latestOpenRoundId: "0xf45abdc7",
+      snapshotHashUsed: "0x7104c775",
     },
   });
 
@@ -210,6 +211,7 @@
       return [`0x${number}`, balance];
     }));
     const mockRounds = new Map();
+    const mockSnapshotHashes = new Set();
     const receipts = new Map();
     let mockLatestOpenRoundId = 0n;
 
@@ -220,6 +222,7 @@
       const totalGsaRaw = holders.reduce((sum, holder) => sum + holder.gsaRaw, 0n);
       const rows = allocateTtwo(holders, totalGsaRaw, mockTtwoWalletBalance);
       const allocations = new Map(rows.map((row) => [row.address, row.ttwoRaw]));
+      mockSnapshotHashes.add("0x" + "a".repeat(64));
       mockRounds.set(roundId.toString(), {
         snapshotHash: "0x" + "a".repeat(64),
         snapshotBlock: mockBlock,
@@ -323,6 +326,10 @@
           if (to === mockVault && data.startsWith(CONFIG.selectors.latestOpenRoundId)) {
             return toUint256Hex(mockLatestOpenRoundId);
           }
+          if (to === mockVault && data.startsWith(CONFIG.selectors.snapshotHashUsed)) {
+            const snapshotHash = `0x${wordAt(data, 0)}`;
+            return toUint256Hex(mockSnapshotHashes.has(snapshotHash) ? 1n : 0n);
+          }
           if (to === mockVault && data.startsWith(CONFIG.selectors.roundStatus)) {
             const roundId = readWord(data, 0);
             const round = getRound(roundId);
@@ -367,7 +374,10 @@
           if (to === mockVault && data.startsWith(CONFIG.selectors.createRound)) {
             const roundId = readWord(data, 0);
             const round = getRound(roundId);
-            round.snapshotHash = `0x${wordAt(data, 1)}`;
+            const snapshotHash = `0x${wordAt(data, 1)}`;
+            if (mockSnapshotHashes.has(snapshotHash)) throw new Error("SnapshotAlreadyUsed");
+            mockSnapshotHashes.add(snapshotHash);
+            round.snapshotHash = snapshotHash;
             round.snapshotBlock = readWord(data, 2);
             round.snapshotBlockHash = `0x${wordAt(data, 3)}`;
             round.exists = true;
@@ -592,8 +602,13 @@
       await ensureRobinhoodChain();
       await assertClaimVault(vault, { requireOwner: true });
 
-      const snapshotHash = await snapshotDigest(state.snapshot, roundId);
+      const snapshotHash = await snapshotDigest(state.snapshot);
       let round = await readRoundStatus(vault, roundId);
+      if (!round.exists && await readSnapshotHashUsed(vault, snapshotHash)) {
+        $("#realSendConfirm").checked = false;
+        updatePublishAvailability();
+        throw new Error("This exact snapshot was already used for a claim round.");
+      }
 
       if (!round.exists) {
         setStatus("work", "Approve createRound in Rabby.");
@@ -811,6 +826,11 @@
     return hexToBigInt(data);
   }
 
+  async function readSnapshotHashUsed(vault, snapshotHash) {
+    const data = await chainCall("eth_call", [{ to: vault, data: encodeSnapshotHashUsed(snapshotHash) }, "latest"]);
+    return hexToBigInt(data) === 1n;
+  }
+
   async function resolveLatestRoundIfNeeded(vault) {
     if ($("#roundId").value.trim()) return;
     setStatus("work", "Finding the latest open claim round...");
@@ -958,6 +978,10 @@
     return `${CONFIG.selectors.roundStatus}${encodeUint256(roundId)}`;
   }
 
+  function encodeSnapshotHashUsed(snapshotHash) {
+    return `${CONFIG.selectors.snapshotHashUsed}${normalizeBytes32(snapshotHash).slice(2)}`;
+  }
+
   function encodeApprove(spender, amount) {
     return `${CONFIG.selectors.approve}${encodeAddress(spender)}${encodeUint256(amount)}`;
   }
@@ -1032,14 +1056,14 @@
     return normalizeAddress(`0x${word.slice(-40)}`);
   }
 
-  async function snapshotDigest(snapshot, roundId) {
+  async function snapshotDigest(snapshot) {
     const stable = snapshot.rows.map((row) => [
       row.rank,
       row.address,
       row.gsaRaw.toString(),
       row.ttwoRaw.toString(),
     ].join(":")).join("|");
-    const payload = `${roundId.toString()}|${snapshot.account}|${snapshot.block.toString()}|${snapshot.blockHash}|${stable}`;
+    const payload = `${snapshot.account}|${snapshot.block.toString()}|${snapshot.blockHash}|${stable}`;
     return sha256Hex(payload);
   }
 
@@ -1294,7 +1318,7 @@
       roundId: roundId.toString(),
       snapshotBlock: state.snapshot.block.toString(),
       snapshotBlockHash: state.snapshot.blockHash,
-      snapshotHash: await snapshotDigest(state.snapshot, roundId),
+      snapshotHash: await snapshotDigest(state.snapshot),
       csvSha256: await sha256Hex(csv),
       ownerWallet: state.snapshot.account,
       minGsa: formatUnits(state.snapshot.minRaw, CONFIG.gsaDecimals, 18),
